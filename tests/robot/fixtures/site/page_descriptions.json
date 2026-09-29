@@ -1,0 +1,12 @@
+{
+    "red-stars": {"description_en": "Carbon and red stars.", "description_de": "Kohlenstoff- und rote Sterne."},
+    "thin-galaxies": {"description_en": "Thin galaxies, at least 1:5.", "description_de": "Schmale Galaxien, mindestens 1:5."},
+    "superthin-galaxies": {"description_en": "Superthin galaxies, at least 1:7.", "description_de": "Besonders schmale Galaxien, mindestens 1:7."},
+    "galaxies-in-messier-44": {
+        "description_en": "Galaxies behind Messier 44.",
+        "description_de": "Galaxien hinter Messier 44.",
+        "image": "../projects/galaxies-in-messier-44/m44.jpg",
+        "image_source_en": "DSS",
+        "image_source_de": "DSS"
+    }
+}

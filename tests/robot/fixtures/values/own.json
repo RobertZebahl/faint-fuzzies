@@ -1,0 +1,287 @@
+[
+ {
+  "NAME": "SizeOk",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "SIZE": "7.6,3.2,90"
+ },
+ {
+  "NAME": "SizeOnlyAngle",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "SIZE": ",,5"
+ },
+ {
+  "NAME": "SizeOneDiameter",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "SIZE": "12"
+ },
+ {
+  "NAME": "SizeText",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "SIZE": "a,b"
+ },
+ {
+  "NAME": "SizeFour",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "SIZE": "1,2,3,4"
+ },
+ {
+  "NAME": "SizeAngleNotWhole",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "SIZE": "1,2,3.5"
+ },
+ {
+  "NAME": "SizeNumber",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "SIZE": 12
+ },
+ {
+  "NAME": "MagOk",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "MAGNITUDE": "v10.3,b11.0"
+ },
+ {
+  "NAME": "MagVariableOk",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "MAGNITUDE": "v9.0-11.5,P350.5,bv0.5"
+ },
+ {
+  "NAME": "MagLaterElement",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "MAGNITUDE": "v10.3,x5"
+ },
+ {
+  "NAME": "MagThreeParts",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "MAGNITUDE": "v1;v2;v3"
+ },
+ {
+  "NAME": "MagNoLetter",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "MAGNITUDE": "10.3"
+ },
+ {
+  "NAME": "CompOk",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "COMPONENT": "AB,1.5,120,2015"
+ },
+ {
+  "NAME": "CompUnknownPlaceholderOk",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "COMPONENT": "AB,-1.0,-1,-1"
+ },
+ {
+  "NAME": "CompSeparationText",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "COMPONENT": "AB,x"
+ },
+ {
+  "NAME": "CompFive",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "COMPONENT": "AB,1,2,3,4"
+ },
+ {
+  "NAME": "CompAngleText",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "COMPONENT": "AB,1,x"
+ },
+ {
+  "NAME": "DssOk",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "DSS": "dss1,20"
+ },
+ {
+  "NAME": "DssCaseOk",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "DSS": "DSS2BLUE"
+ },
+ {
+  "NAME": "DssUnknown",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "DSS": "dss3"
+ },
+ {
+  "NAME": "DssFovText",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "DSS": "dss1,x"
+ },
+ {
+  "NAME": "RatingOk",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "RATING": 0
+ },
+ {
+  "NAME": "RatingTooHigh",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "RATING": 4
+ },
+ {
+  "NAME": "RatingText",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "RATING": "2"
+ },
+ {
+  "NAME": "RatingBoolean",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "RATING": true
+ },
+ {
+  "NAME": "BinocularRatingTooHigh",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "PROJECT_DEEP_SKY_WITH_BINOCULARS_RATING": 5
+ },
+ {
+  "NAME": "ListsOk",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "PROJECT_DOUBLE_STARS_LISTS": "BC"
+ },
+ {
+  "NAME": "ListsUnknownLetter",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "PROJECT_DOUBLE_STARS_LISTS": "BX"
+ },
+ {
+  "NAME": "FlagOk",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "DISABLE_DSS": true,
+  "RED_STARS_LIST": false
+ },
+ {
+  "NAME": "FlagText",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "DISABLE_DSS": "false"
+ },
+ {
+  "NAME": "FlagNumber",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "RED_STARS_LIST": 1
+ },
+ {
+  "NAME": "DisableProjectDoubleStarsText",
+  "TYPE": "**",
+  "CONSTELLATION": "Cet",
+  "DISABLE_PROJECT_DOUBLE_STARS": "false"
+ },
+ {
+  "NAME": "PublishWithoutObservationNumber",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "PUBLISH_WITHOUT_OBSERVATION": 1
+ },
+ {
+  "NAME": "EquinoxOk",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "EQUINOX": "B1950"
+ },
+ {
+  "NAME": "EquinoxDefaultOk",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "EQUINOX": "J2000.0"
+ },
+ {
+  "NAME": "EquinoxShort",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "EQUINOX": "J2000"
+ },
+ {
+  "NAME": "ConstellationCaseOk",
+  "TYPE": "Gx",
+  "CONSTELLATION": "CET"
+ },
+ {
+  "NAME": "ConstellationWrong",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Xyz"
+ },
+ {
+  "NAME": "SecondMagnitudeOnGalaxy",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "MAGNITUDE": "v5;v6"
+ },
+ {
+  "NAME": "SecondMagnitudeOnDoubleStarOk",
+  "TYPE": "**",
+  "CONSTELLATION": "Cet",
+  "MAGNITUDE": "v5;v6"
+ },
+ {
+  "NAME": "ObservationsInOrderOk",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "OBSERVATIONS": [
+   {
+    "DATE": "01.10.2011",
+    "TIME": "22:00",
+    "OPTIC": "A"
+   },
+   {
+    "DATE": "02.10.2011",
+    "TIME": "22:00",
+    "OPTIC": "A"
+   }
+  ]
+ },
+ {
+  "NAME": "ObservationsOutOfOrder",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "OBSERVATIONS": [
+   {
+    "DATE": "02.10.2011",
+    "TIME": "22:00",
+    "OPTIC": "A"
+   },
+   {
+    "DATE": "01.10.2011",
+    "TIME": "22:00",
+    "OPTIC": "A"
+   }
+  ]
+ },
+ {
+  "NAME": "MagTwoPartsOnDoubleStarOk",
+  "TYPE": "**",
+  "CONSTELLATION": "Cet",
+  "MAGNITUDE": "v5,b5.5;v6"
+ },
+ {
+  "NAME": "MagRepairableOk",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "MAGNITUDE": "v 3.4 ,"
+ }
+]

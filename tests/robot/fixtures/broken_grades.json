@@ -1,0 +1,26 @@
+[
+    {"NAME": "Reversed grade", "TYPE": "Gx", "OBSERVATIONS": [
+        {"OPTIC": "A", "VISIBILITY": "5-4"}
+    ]},
+    {"NAME": "Skipped grade", "TYPE": "Gx", "OBSERVATIONS": [
+        {"OPTIC": "A", "VISIBILITY": "1-3"}
+    ]},
+    {"NAME": "Range past failed", "TYPE": "Gx", "OBSERVATIONS": [
+        {"OPTIC": "A", "VISIBILITY": "5-6"}
+    ]},
+    {"NAME": "Star no longer supported", "TYPE": "Gx", "OBSERVATIONS": [
+        {"OPTIC": "A", "VISIBILITY": "5*"}
+    ]},
+    {"NAME": "Star on a range", "TYPE": "Gx", "OBSERVATIONS": [
+        {"OPTIC": "A", "VISIBILITY": "4-5*"}
+    ]},
+    {"NAME": "Double star over scale", "TYPE": "**", "OBSERVATIONS": [
+        {"OPTIC": "A", "VISIBILITY": "4"}
+    ]},
+    {"NAME": "Double star bad range", "TYPE": "**", "OBSERVATIONS": [
+        {"OPTIC": "A", "VISIBILITY": "2-3"}
+    ]},
+    {"NAME": "Double star star", "TYPE": "**", "OBSERVATIONS": [
+        {"OPTIC": "A", "VISIBILITY": "3*"}
+    ]}
+]

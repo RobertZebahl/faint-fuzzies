@@ -1,0 +1,6 @@
+[
+    {"NAME": "AMBIG1, DUP1", "TYPE": "**", "CONSTELLATION": "Lyr", "COMPONENT": "AB"},
+    {"NAME": "SHARED1", "TYPE": "**", "CONSTELLATION": "Lyr", "COMPONENT": "AB"},
+    {"NAME": "SHARED1", "TYPE": "**", "CONSTELLATION": "Lyr", "COMPONENT": "AB"},
+    {"NAME": "SOLO1", "TYPE": "**", "CONSTELLATION": "Lyr", "COMPONENT": "AB"}
+]

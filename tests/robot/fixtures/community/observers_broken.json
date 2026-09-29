@@ -1,0 +1,6 @@
+[
+    {"ID": "anna-example", "FIRSTNAME": "Anna", "SURNAME": "Example"},
+    {"ID": "anna-example", "FIRSTNAME": "Anna", "SURNAME": "Again"},
+    {"ID": "no-name"},
+    "not an object"
+]

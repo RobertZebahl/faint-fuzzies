@@ -1,0 +1,10 @@
+[
+    {"NAME": "M31, NGC 224, Andromedanebel", "TYPE": "Gx", "CONSTELLATION": "And"},
+    {"NAME": "H58 2", "TYPE": "OC", "CONSTELLATION": "Cas"},
+    {"NAME": "Albireo", "TYPE": "**", "CONSTELLATION": "Cyg", "COMPONENT": "AB,34.5,53,2023"},
+    {"GROUP": "WDS19484+1655, 2 Sge", "TYPE": "**", "CONSTELLATION": "Sge"},
+    {"NAME": "HDS2753, 2 Sge, WDS19484+1655", "GROUP": "WDS19484+1655, 2 Sge", "TYPE": "**", "CONSTELLATION": "Sge", "COMPONENT": "Aa-Ab,0.1,163,1978"},
+    {"NAME": "STFA41, 2 Sge, WDS19484+1655", "GROUP": "WDS19484+1655, 2 Sge", "TYPE": "**", "CONSTELLATION": "Sge", "COMPONENT": "AB,9.7,120,2015"},
+    {"NAME": "XYZ1, 2 Sge, WDS19484+1655", "GROUP": "WDS19484+1655, 2 Sge", "TYPE": "**", "CONSTELLATION": "Sge", "COMPONENT": "AC,20.0,66,2015"},
+    {"NAME": "STF1884, WDS14400+1400", "TYPE": "**", "CONSTELLATION": "Boo", "COMPONENT": "AB,2.1,351,2020"}
+]

@@ -1,0 +1,8 @@
+[
+    {"NAME": "GOOD1", "GROUP": "SYS1", "TYPE": "**", "CONSTELLATION": "Lyr", "COMPONENT": "AB"},
+    {"GROUP": "SYS1", "TYPE": "**", "CONSTELLATION": "Lyr"},
+    {"NAME": "GHOST1", "GROUP": "GHOST9", "TYPE": "**", "CONSTELLATION": "Lyr", "COMPONENT": "AB"},
+    {"GROUP": "LONELY9", "TYPE": "**", "CONSTELLATION": "Lyr"},
+    {"NAME": "SOLO1", "TYPE": "**", "CONSTELLATION": "Lyr"},
+    {"GROUP": "LONELYGXG9", "TYPE": "GxG", "CONSTELLATION": "Lyr"}
+]

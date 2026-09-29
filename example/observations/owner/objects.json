@@ -1,0 +1,29 @@
+[
+    {"NAME": "Messier 13, NGC6205", "TYPE": "GC", "CONSTELLATION": "Her", "COORDINATES": "164141.70,+362740.00", "EQUINOX": "J2000.0",
+        "MAGNITUDE": "v5.8", "SIZE": "20.0",
+        "OBSERVATIONS": [
+            {"OPTIC": "N,200,1200", "VISIBILITY": "100,EASY", "DESCRIPTION": "One of the finest globular clusters for northern observers; bright and round with a dense core."},
+            {"DATE": "15.06.2024", "TIME": "22:30", "OPTIC": "N,200,1200", "VISIBILITY": "150,EASY", "DESCRIPTION": "Outer halo partly resolved into stars at 150x."}
+        ]
+    },
+    {"NAME": "Messier 57, NGC6720", "TYPE": "PN", "CONSTELLATION": "Lyr", "COORDINATES": "185335.079,+330145.03", "EQUINOX": "J2000.0",
+        "MAGNITUDE": "v8.8", "SIZE": "1.4,1.0",
+        "OBSERVATIONS": [
+            {"OPTIC": "N,200,1200", "VISIBILITY": "100,EASY", "DESCRIPTION": "The Ring Nebula; a small but famous planetary nebula, clearly annular at higher magnification."},
+            {"DATE": "15.06.2024", "TIME": "23:10", "OPTIC": "N,200,1200", "VISIBILITY": "150,MEDIUM", "DESCRIPTION": "Central star not seen; the ring itself was easy."}
+        ]
+    },
+    {"NAME": "Messier 31, NGC224", "TYPE": "Gx", "CONSTELLATION": "And", "COORDINATES": "004244.33,+411609.00", "EQUINOX": "J2000.0",
+        "MAGNITUDE": "v3.4", "SIZE": "190.0,60.0,35",
+        "OBSERVATIONS": [
+            {"OPTIC": "B,10x50", "VISIBILITY": "EASY", "DESCRIPTION": "The Andromeda Galaxy; our nearest large neighbour, a large elongated glow even in binoculars."},
+            {"DATE": "20.09.2024", "TIME": "21:00", "OPTIC": "B,10x50", "VISIBILITY": "EASY", "DESCRIPTION": "The core was easy; the companion galaxies were not tried."}
+        ]
+    },
+    {"NAME": "Albireo, STFA43", "TYPE": "**", "CONSTELLATION": "Cyg", "COORDINATES": "193043.29,+275734.90", "EQUINOX": "J2000.0", "MAGNITUDE": "v3.19;v4.68", "COMPONENT": "AB,34.5,53,2023",
+        "OBSERVATIONS": [
+            {"OPTIC": "N,200,1200", "VISIBILITY": "60,EASY", "DESCRIPTION": "A popular double star, known for its colour contrast; easily split."},
+            {"DATE": "20.09.2024", "TIME": "22:15", "OPTIC": "N,200,1200", "VISIBILITY": "60,EASY", "DESCRIPTION": "Beautiful gold and blue colour contrast at 60x."}
+        ]
+    }
+]

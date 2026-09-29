@@ -1,0 +1,5 @@
+#!/bin/sh
+# A stand-in for real rsync, for tests: upload.py's own subprocess is "sshpass" (fake_sshpass.sh is the one
+# that actually records what was asked of it); this file only needs to exist and be executable so
+# `shutil.which("rsync")` finds it - see upload.py::_check_tools_available.
+exit 0

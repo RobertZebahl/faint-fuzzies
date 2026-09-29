@@ -1,0 +1,8 @@
+[
+    {"NAME": "alpha 1 Cap", "TYPE": "*", "CONSTELLATION": "Cap"},
+    {"NAME": "beta Lyr", "TYPE": "*", "CONSTELLATION": "Lyr"},
+    {"NAME": "Eta Cas", "TYPE": "*", "CONSTELLATION": "Cas"},
+    {"NAME": "theta Ser", "TYPE": "*", "CONSTELLATION": "Ser"},
+    {"NAME": "Alphard", "TYPE": "*", "CONSTELLATION": "Hya"},
+    {"GROUP": "11 Hya, epsilon Hya", "TYPE": "**", "CONSTELLATION": "Hya"}
+]

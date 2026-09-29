@@ -1,0 +1,5 @@
+[upload]
+host = "example.test"
+user = "testuser"
+remote_path = "/var/www/faint-fuzzies"
+port = "not-a-number"

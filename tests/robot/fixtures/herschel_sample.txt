@@ -1,0 +1,11 @@
+Herschel  Name     Type          R. A.   Dec    Size Mag  Con 
+H 1.  1   NGC 1055 Galaxy         2:41.8 + 0:26  7.6 10.6 Cet  = H 2.6 "400" edge-on
+H 3.182   NGC 7578 Galaxy        23:17.2 +18:41  1.0 14.0 Peg  double system
+H 3.479   NGC 2459 Not documnted  7:52.0 + 9:33           CMi 
+H 2. 32   NGC 3645 Galaxy        11:21.6 + 2:59  NIU 14.1 Leo 
+H 1. 57   NGC 2905 Knot in galax  9:32.2 +21:31 13.3 10 p Leo   With NGC 2903
+H 1. 11   NGC 4153 Nonexistent   12:10.8 +18:22           Com 
+H 1.  7   
+H 1. 26?  NGC 3345 Double star   10:43.6 +11:59           Leo 
+H 1.  9   NGC 4179 Galaxy        12:12.9 + 1:18  3.9 11.0 Vir  "400" edge on spindle shape
+H 1. 10   NGC 4643 Galaxy        12:43.3 + 1:59  3.4 10.6 Vir  "400"

@@ -1,0 +1,8 @@
+[
+    {"NAME": "Good", "TYPE": "Gx", "CONSTELLATION": "Cet", "COORDINATES": "010203.4,+020304.5"},
+    {"NAME": "Short", "TYPE": "Gx", "CONSTELLATION": "Cet", "COORDINATES": "12345,+1234"},
+    {"NAME": "One Field", "TYPE": "Gx", "CONSTELLATION": "Cet", "COORDINATES": "010203.4"},
+    {"NAME": "No Sign", "TYPE": "Gx", "CONSTELLATION": "Cet", "COORDINATES": "010203.4,020304.5"},
+    {"NAME": "Not Text", "TYPE": "Gx", "CONSTELLATION": "Cet", "COORDINATES": 12},
+    {"NAME": "None Given", "TYPE": "Gx", "CONSTELLATION": "Cet"}
+]

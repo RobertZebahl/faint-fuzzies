@@ -1,0 +1,2 @@
+STATIC project-skyguide {{ ENGLISH }}
+SKYGUIDE MAGNITUDE {{ MAGNITUDE }}

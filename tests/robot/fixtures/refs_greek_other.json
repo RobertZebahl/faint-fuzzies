@@ -1,0 +1,8 @@
+[
+    {"NAME": "alp 1 Cap", "TYPE": "*", "CONSTELLATION": "Cap"},
+    {"NAME": "bet Lyr", "TYPE": "*", "CONSTELLATION": "Lyr"},
+    {"NAME": "eta Cas", "TYPE": "*", "CONSTELLATION": "Cas"},
+    {"NAME": "tet Ser", "TYPE": "*", "CONSTELLATION": "Ser"},
+    {"NAME": "Alp d", "TYPE": "*", "CONSTELLATION": "Hya"},
+    {"GROUP": "eps Hya, WDS08469+0640", "TYPE": "**", "CONSTELLATION": "Hya"}
+]

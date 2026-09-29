@@ -1,0 +1,32 @@
+[
+    {"NAME": "Observed", "TYPE": "Gx", "CONSTELLATION": "Cet", "OBSERVATIONS": [
+        {"OPTIC": "A", "DESCRIPTION_EN": "Seen."}
+    ]},
+    {"NAME": "Header only", "TYPE": "Gx", "CONSTELLATION": "Cet", "OBSERVATIONS": [
+        {"DESCRIPTION_EN": "General."}
+    ]},
+    {"NAME": "Header only marked", "TYPE": "Gx", "CONSTELLATION": "Cet", "PUBLISH_WITHOUT_OBSERVATION": true, "OBSERVATIONS": [
+        {"DESCRIPTION_EN": "General."}
+    ]},
+    {"NAME": "Header only marked false", "TYPE": "Gx", "CONSTELLATION": "Cet", "PUBLISH_WITHOUT_OBSERVATION": false, "OBSERVATIONS": [
+        {"DESCRIPTION_EN": "General."}
+    ]},
+    {"NAME": "Nothing", "TYPE": "Gx", "CONSTELLATION": "Cet"},
+    {"NAME": "Nothing marked", "TYPE": "Gx", "CONSTELLATION": "Cet", "PUBLISH_WITHOUT_OBSERVATION": true},
+    {"NAME": "Marked with a bad observation", "TYPE": "Gx", "CONSTELLATION": "Cet", "PUBLISH_WITHOUT_OBSERVATION": true, "OBSERVATIONS": [
+        {"OPTIC": "R,70"}
+    ]},
+    {"NAME": "Only a bad observation", "TYPE": "Gx", "CONSTELLATION": "Cet", "OBSERVATIONS": [
+        {"OPTIC": "R,70"}
+    ]},
+    {"NAME": "Marked but invalid", "TYPE": "Zz", "CONSTELLATION": "Cet", "PUBLISH_WITHOUT_OBSERVATION": true},
+    {"NAME": "STF1", "TYPE": "**", "CONSTELLATION": "And", "OBSERVATIONS": [
+        {"OPTIC": "A", "DESCRIPTION_EN": "Seen."}
+    ]},
+    {"NAME": "STF2", "TYPE": "**", "CONSTELLATION": "And", "OBSERVATIONS": [
+        {"DESCRIPTION_EN": "General."}
+    ]},
+    {"NAME": "STF3", "TYPE": "**", "CONSTELLATION": "And", "PUBLISH_WITHOUT_OBSERVATION": true, "OBSERVATIONS": [
+        {"DESCRIPTION_EN": "General."}
+    ]}
+]

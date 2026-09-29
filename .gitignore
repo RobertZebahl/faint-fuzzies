@@ -1,0 +1,12 @@
+.idea/
+.venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+docs/source/api/
+# Robot Framework's default output, when run without --outputdir (see README's Tests section)
+/log.html
+/output.xml
+/report.html

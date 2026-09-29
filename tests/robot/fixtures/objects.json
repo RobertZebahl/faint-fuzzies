@@ -1,0 +1,11 @@
+[
+    {"NAME": "3C48, 0134+329", "TYPE": "Q", "CONSTELLATION": "TRI", "COORDINATES": "013736.00,+330900", "MAGNITUDE": "v16.5"},
+    {"NAME": "H1.1, NGC1055", "GROUP": "400", "TYPE": "Gx", "CONSTELLATION": "Cet", "COORDINATES": "024148.00,+002600", "MAGNITUDE": "v10.6", "SIZE": "7.6"},
+    {"NAME": "NGC752", "TYPE": "OC", "CONSTELLATION": "And"},
+    {"NAME": "Mond|Moon", "TYPE": "S"},
+    {"NAME": "78P/Gehrels", "TYPE": "C,S"},
+    {"GROUP": "2 Sge", "TYPE": "**", "CONSTELLATION": "Sge"},
+    {"NAME": "HDS2753, 2 Sge", "GROUP": "2 Sge", "TYPE": "**", "CONSTELLATION": "Sge", "COMPONENT": "Aa-Ab"},
+    {"NAME": "STFA41, 2 Sge", "GROUP": "2 Sge", "TYPE": "**", "CONSTELLATION": "Sge", "COMPONENT": "AB"},
+    {"NAME": "STF1884", "TYPE": "**", "CONSTELLATION": "Boo", "COMPONENT": "AB"}
+]

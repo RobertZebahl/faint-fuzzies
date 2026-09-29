@@ -1,0 +1,6 @@
+[
+    {"NAME": "STF1", "TYPE": "**", "CONSTELLATION": "Lyr", "COMPONENT": "AB"},
+    {"NAME": "PHANTOM1", "TYPE": "**", "CONSTELLATION": "Lyr", "COMPONENT": "AB"},
+    {"NAME": "STF2", "TYPE": "**", "CONSTELLATION": "Lyr", "COMPONENT": "AB", "DISABLE_WDS": true},
+    {"NAME": "NotADouble", "TYPE": "Gx", "CONSTELLATION": "Lyr"}
+]

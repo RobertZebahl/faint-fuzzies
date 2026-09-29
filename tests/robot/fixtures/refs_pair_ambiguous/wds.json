@@ -1,0 +1,5 @@
+[
+    {"NAME": "RIGHT1, AMBIG1", "TYPE": "**", "CONSTELLATION": "Lyr", "COMPONENT": "AB"},
+    {"NAME": "WRONG1, AMBIG1", "TYPE": "**", "CONSTELLATION": "Lyr", "COMPONENT": "AB"},
+    {"NAME": "DUAL1", "TYPE": "**", "CONSTELLATION": "Lyr", "COMPONENT": "AB"}
+]

@@ -1,0 +1,50 @@
+[
+    {"NAME": "NGC1055", "TYPE": "Gx", "CONSTELLATION": "Cet", "OBSERVATIONS": [
+        {"DATE": "29.09.2011", "TIME": "22:00", "OPTIC": "N,200,1200", "VISIBILITY": "133,3", "DESCRIPTION": "Hell, gut sichtbar."},
+        {"DATE": "02.10.2011", "TIME": "22:30", "OPTIC": "R,80,500", "VISIBILITY": "50,6", "SKETCH": "ngc1055.jpg"},
+        {"OPTIC": "B,10x50", "BORTLE": "4", "VISIBILITY": "EASY",
+            "DESCRIPTION_DE": "Leicht zu sehen.",
+            "DESCRIPTION_EN": "Easy to see."}
+    ]},
+    {"NAME": "NGC1250", "TYPE": "Gx", "CONSTELLATION": "Per", "OBSERVATIONS": [
+        {"DATE": "03.10.2011", "TIME": "20:30-20:45", "OPTIC": "N,200,1200", "VISIBILITY": "150,6"}
+    ]},
+    {"NAME": "NGC1", "TYPE": "Gx", "CONSTELLATION": "Peg"},
+    {"NAME": "NGC2", "TYPE": "Gx", "CONSTELLATION": "Peg", "OBSERVATIONS": [
+        {"OPTIC": "R,120,600", "VISIBILITY": "80,HARD",
+            "DESCRIPTION_DE": "Schwierig.",
+            "DESCRIPTION_EN": "Hard."}
+    ]},
+    {"NAME": "Mond|Moon", "TYPE": "S", "OBSERVATIONS": [
+        {"DATE": "29.09.2011", "TIME": "23:00", "OPTIC": "R,70,400", "VISIBILITY": "100"}
+    ]},
+    {"NAME": "STF1884", "TYPE": "**", "CONSTELLATION": "Boo", "COMPONENT": "AB", "OBSERVATIONS": [
+        {"DATE": "03.10.2011", "TIME": "20:30", "OPTIC": "R,80,500", "VISIBILITY": "150,3"}
+    ]},
+    {"NAME": "STF1110", "TYPE": "**", "CONSTELLATION": "Lyn", "COMPONENT": "AB", "OBSERVATIONS": [
+        {"DATE": "03.10.2011", "TIME": "20:35", "OPTIC": "R,80,500", "VISIBILITY": "150,2"}
+    ]},
+    {"NAME": "NGC752", "TYPE": "OC", "CONSTELLATION": "And", "OBSERVATIONS": [
+        {"DATE": "02.10.2011", "TIME": "22:20", "OPTIC": "B,8x42", "VISIBILITY": "3"}
+    ]},
+    {"NAME": "NGC457", "TYPE": "OC", "CONSTELLATION": "Cas", "OBSERVATIONS": [
+        {"DATE": "29.09.2011", "TIME": "23:30", "OPTIC": "B,10x50", "VISIBILITY": "5"}
+    ]},
+    {"NAME": "NGC884", "TYPE": "OC", "CONSTELLATION": "Per", "OBSERVATIONS": [
+        {"DATE": "29.09.2011", "TIME": "23:45", "OPTIC": "B,10x50", "VISIBILITY": "6"}
+    ]},
+    {"NAME": "IC1805", "TYPE": "BN,EN", "CONSTELLATION": "Cas", "OBSERVATIONS": [
+        {"DATE": "29.09.2011", "TIME": "22:45", "OPTIC": "N,200,1200", "VISIBILITY": "37,5,OIII"}
+    ]},
+    {"NAME": "rho Cas", "TYPE": "*,V*", "CONSTELLATION": "Cas", "OBSERVATIONS": [
+        {"OPTIC": "N,200,1200", "VISIBILITY": "100,RED",
+            "DESCRIPTION_DE": "Tiefrot.",
+            "DESCRIPTION_EN": "Deep red."}
+    ]},
+    {"NAME": "NGC3", "TYPE": "Gx", "CONSTELLATION": "Peg", "OBSERVATIONS": [
+        {"DATE": "03.10.2011", "TIME": "21:30-21:40", "OPTIC": "A", "VISIBILITY": "3"}
+    ]},
+    {"NAME": "NGC4", "TYPE": "Gx", "CONSTELLATION": "Peg", "OBSERVATIONS": [
+        {"DATE": "05.05.2015", "TIME": "21:00", "OPTIC": "A"}
+    ]}
+]

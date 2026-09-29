@@ -1,0 +1,58 @@
+[
+    {"NAME": "260P/McNaught", "TYPE": "C,S", "OBSERVATIONS": [
+        {"DATE": "27.09.2019", "TIME": "21:30", "OPTIC": "N,320,1440", "VISIBILITY": "80,3-4", "DESCRIPTION": "Recht gut kondensiert."}
+    ]},
+    {"NAME": "C/2021 A1 (Leonard)", "TYPE": "C,S", "OBSERVATIONS": [
+        {"OPTIC": "R,120,600", "BORTLE": "6", "SQML": "19.2", "VISIBILITY": "33", "SKETCH": "2021-12-03_c2021_a1_leonard_m3.jpg"},
+        {"DATE": "03.12.2021", "TIME": "05:55-06:10", "OPTIC": "B,8x42", "VISIBILITY": "3", "DESCRIPTION": "Recht kompakte, diffuse Aufhellung, welche kleiner als Messier 3 erscheint. Der nahestehende Stern ist nur blickweise sichtbar."},
+        {"DATE": "03.12.2021", "TIME": "05:55-06:10", "OPTIC": "R,120,600", "VISIBILITY": "33,2-3;46,2", "SKETCH": "2021-12-03_c2021_a1_leonard_m3.jpg"}
+    ]},
+    {"GROUP": "Arp266", "TYPE": "GxG", "CONSTELLATION": "CVn", "COORDINATES": "125902,+345134", "DSS": ",8.0", "OBSERVATIONS": [
+        {"OPTIC": "R,152,900", "BORTLE": "6", "SQML": "19.4", "SEEING": "3/5", "VISIBILITY": "100,FAILED",
+            "DESCRIPTION_DE": "Vergeblich bei 100x und 129x versucht.",
+            "DESCRIPTION_EN": "Tried at 100x und 129x without success."}
+    ]},
+    {"GROUP": "D22", "TYPE": "**", "CONSTELLATION": "Cyg"},
+    {"NAME": "D22", "GROUP": "D22", "TYPE": "**", "CONSTELLATION": "Cyg", "COMPONENT": "AB"},
+    {"NAME": "IC2177, Sh2-296, LBN1033, Gum2, Seemöwennebel|Seagull Nebula", "TYPE": "BN,EN", "CONSTELLATION": "Mon", "COORDINATES": "070600.0,-110000", "SIZE": "160.0,120.0", "DSS": "dss2red"},
+    {"NAME": "lambda Oph, 10 Oph, STF2055, Marfic", "TYPE": "**", "CONSTELLATION": "Oph", "COMPONENT": "AB", "OBSERVATIONS": [
+        {"DATE": "21.08.2015", "TIME": "22:10", "OPTIC": "N,200,1200", "SQML_LOCAL": "20.1", "VISIBILITY": "150,3"}
+    ]},
+    {"NAME": "LDN720", "TYPE": "DN", "CONSTELLATION": "Aql", "COORDINATES": "193700,+151500", "SIZE": "160.0,160.0", "DISABLE_DSS": true},
+    {"NAME": "Leiter 12", "TYPE": "Ast", "CONSTELLATION": "Lyr", "COORDINATES": "185231,+334837", "SIZE": "1.5,0.8", "OBSERVATIONS": [
+        {"PHOTOGRAPH": "leiter-12.jpg"}
+    ]},
+    {"NAME": "Messier 2, NGC7089", "TYPE": "GC", "CONSTELLATION": "Aqr", "COORDINATES": "213327.02,-004923.7", "MAGNITUDE": "v6.25", "SIZE": "16.0,16.0", "PROJECT_DEEP_SKY_WITH_BINOCULARS_RATING": 1, "OBSERVATIONS": [
+        {"OPTIC": "B,8x42", "BORTLE": "3", "SQML": "21.4", "VISIBILITY": "EASY",
+            "DESCRIPTION_DE": "Hell, ziemlich kompakt, nach außen schnell schwächer werdend. Visuell ähnlich Messier 15.",
+            "DESCRIPTION_EN": "Bright, fairly compact, getting noticeably fainter towards the edges. Visually similar to Messier 15."},
+        {"OPTIC": "B,16x70", "BORTLE": "6-", "SQML": "19.2", "VISIBILITY": "EASY",
+            "DESCRIPTION_DE": "Sofort auffallend, sehr hell, relativ groß, diffus, mittig deutlich heller werdend.",
+            "DESCRIPTION_EN": "Immediately striking, very bright, relatively large, diffuse, becoming much brighter towards the center."},
+        {"OPTIC": "N,200,1200", "BORTLE": "5", "VISIBILITY": "37,EASY",
+            "DESCRIPTION_DE": "Sehr hell. Bei 200x waren die Randbereiche leicht körnig.",
+            "DESCRIPTION_EN": "Very bright. At 200x the outer region appeared slightly granulous."},
+        {"DATE": "05.08.2013", "TIME": "01:40", "OPTIC": "N,200,1200", "VISIBILITY": "37,1;200,1", "DESCRIPTION": "Eher zufällige Beobachtung. Sehr hell. Bei 200x Randbereiche leicht körnig."},
+        {"DATE": "02.09.2021", "TIME": "22:20", "OPTIC": "B,16x70", "VISIBILITY": "1", "DESCRIPTION": "Sofort auffallend, sehr hell, relativ groß, diffus, mittig deutlich heller werdend."},
+        {"DATE": "11.09.2026", "TIME": "23:55", "OPTIC": "B,8x42", "VISIBILITY": "1", "DESCRIPTION": "Hell, ziemlich kompakt, nach außen schnell schwächer werdend. Visuell ähnlich Messier 15."}
+    ]},
+    {"NAME": "NGC281, IC11, Pacman-Nebel|Pacman Nebula", "TYPE": "BN,EN", "CONSTELLATION": "Cas", "COORDINATES": "005225.1,+563354", "MAGNITUDE": "b7.3", "SIZE": "35.0,35.0", "OBSERVATIONS": [
+        {"OPTIC": "N,200,1200", "BORTLE": "5+", "VISIBILITY": "37,EASY,OIII",
+            "DESCRIPTION_DE": "Relativ deutliche, leicht unregelmäßige Aufhellung mit einer dunklen Einbuchtung. Eine genauere Beobachtung steht noch aus.",
+            "DESCRIPTION_EN": "Quite obvious, slightly irregular brightening with a dark notch. A more detailed observation is outstanding."},
+        {"DATE": "22.06.2012", "TIME": "00:30-02:00", "OPTIC": "N,200,1200", "VISIBILITY": "37,4,OIII", "DESCRIPTION": "Relativ deutliche, leicht unregelmäßige Aufhellung."},
+        {"DATE": "22.07.2012-23.07.2012", "TIME": "23:00-03:00", "OPTIC": "N,200,1200"},
+        {"DATE": "24.07.2012-25.07.2012", "TIME": "23:00-04:30", "OPTIC": "N,200,1200"},
+        {"DATE": "19.10.2012", "TIME": "21:00", "OPTIC": "SC,200,2000", "VISIBILITY": ",4,UHC", "DESCRIPTION": "Wurde mit TS UHC Filter beobachtet und konnte indirekt gut gesehen werden. Ebenso war eine dunkle Einbuchtung sichtbar."}
+    ]},
+    {"NAME": "rho Cas", "TYPE": "*,V*", "CONSTELLATION": "Cas", "COORDINATES": "235423.0339951270,+572957.766930774", "MAGNITUDE": "v4.1-6.2", "RED_STARS_LIST": true},
+    {"GROUP": "S570", "TYPE": "**", "CONSTELLATION": "Cnc", "OBSERVATIONS": [
+        {"DESCRIPTION_DE": "In Messier 44 gelegen.",
+         "DESCRIPTION_EN": "Located in Messier 44."}
+    ]},
+    {"NAME": "S735", "TYPE": "**", "CONSTELLATION": "Aql", "PROJECT_DOUBLE_STARS_LISTS": "B"},
+    {"NAME": "Sh2-86", "TYPE": "BN,EN", "CONSTELLATION": "Vul", "COORDINATES": "194312.0,+231500", "DSS": ",60.0"},
+    {"NAME": "STF1223, phi 2 Cnc, 23 Cnc", "TYPE": "**", "CONSTELLATION": "Cnc", "NOTES": "Beobachten!"},
+    {"GROUP": "STF3049, sigma Cas, 8 Cas", "TYPE": "**", "CONSTELLATION": "Cas", "RATING": 1},
+    {"NAME": "vdB54", "TYPE": "BN", "CONSTELLATION": "Ori", "COORDINATES": "054155,-061510", "DSS": ",5.0"}
+]

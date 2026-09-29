@@ -1,0 +1,67 @@
+[
+    {
+        "NAME": "GoodSketch",
+        "TYPE": "OC",
+        "CONSTELLATION": "And",
+        "COORDINATES": "000000.00,+400000.00",
+        "OBSERVATIONS": [
+            {"DATE": "01.01.2024", "TIME": "20:00", "OPTIC": "A", "SKETCH": "sketch1.jpg"}
+        ]
+    },
+    {
+        "NAME": "MissingFiles",
+        "TYPE": "OC",
+        "CONSTELLATION": "And",
+        "COORDINATES": "000000.00,+400000.00",
+        "OBSERVATIONS": [
+            {"DATE": "01.01.2024", "TIME": "20:00", "OPTIC": "A",
+             "SKETCH": "missing_sketch.jpg", "PHOTOGRAPH": "missing_photo.jpg"}
+        ]
+    },
+    {
+        "NAME": "GoodHeader",
+        "TYPE": "OC",
+        "CONSTELLATION": "And",
+        "COORDINATES": "000000.00,+400000.00",
+        "OBSERVATIONS": [
+            {"IMAGE": "header1.jpg"}
+        ]
+    },
+    {
+        "NAME": "SketchWithImage",
+        "TYPE": "OC",
+        "CONSTELLATION": "And",
+        "COORDINATES": "000000.00,+400000.00",
+        "OBSERVATIONS": [
+            {"DATE": "01.01.2024", "TIME": "20:00", "OPTIC": "A", "SKETCH": "sketch1.jpg", "IMAGE": "header1.jpg"}
+        ]
+    },
+    {
+        "NAME": "MissingImage",
+        "TYPE": "OC",
+        "CONSTELLATION": "And",
+        "COORDINATES": "000000.00,+400000.00",
+        "OBSERVATIONS": [
+            {"IMAGE": "missing_header.jpg"}
+        ]
+    },
+    {
+        "NAME": "MultipleSketches",
+        "TYPE": "OC",
+        "CONSTELLATION": "And",
+        "COORDINATES": "000000.00,+400000.00",
+        "OBSERVATIONS": [
+            {"DATE": "01.01.2024", "TIME": "20:00", "OPTIC": "A",
+             "SKETCH": "sketch1.jpg,sketch2.jpg,missing_sketch2.jpg"}
+        ]
+    },
+    {
+        "NAME": "SketchWithoutOptic",
+        "TYPE": "OC",
+        "CONSTELLATION": "And",
+        "COORDINATES": "000000.00,+400000.00",
+        "OBSERVATIONS": [
+            {"DATE": "01.01.2024", "TIME": "20:00", "SKETCH": "sketch1.jpg"}
+        ]
+    }
+]
