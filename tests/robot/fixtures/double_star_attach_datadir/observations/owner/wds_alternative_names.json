@@ -1,0 +1,12 @@
+[
+    {"name": "STFY3, WDS14000+1500", "alternative_name": "Zeta Mystery"},
+    {"name": "eps Aql", "alternative_name": "Old Catalog Name", "replace": true},
+    {"name": "STFX1", "alternative_name": "Should Not Apply"},
+    {"name": "STFZ4, Nonexistent Designation", "alternative_name": "Z4 Informal Name"},
+    {"name": "eps Aql", "alternative_name": "Eps Aql C", "component": "AC"},
+    {"name": "STFY3, WDS14000+1500", "alternative_name": "Should Not Apply Either", "component": "AB"},
+    {"name": "eps Aql", "alternative_name": "Should Not Apply At All", "component": "ZZ"},
+    {"name": "STFV9, WDS08000+0800", "alternative_name": "Test Informal Name", "component": "AB"},
+    {"name": "STFW5, WDS02000+0200", "alternative_name": "First Informal Name"},
+    {"name": "STFW5", "alternative_name": "Second Informal Name"}
+]

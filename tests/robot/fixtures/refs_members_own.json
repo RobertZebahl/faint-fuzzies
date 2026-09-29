@@ -1,0 +1,9 @@
+[
+    {"GROUP": "BU17", "TYPE": "**", "CONSTELLATION": "And", "OBSERVATIONS": [
+        {"DATE": "29.09.2011", "TIME": "22:30", "OPTIC": "R,80,500", "VISIBILITY": "150,1"}
+    ]},
+    {"NAME": "BU17", "GROUP": "BU17", "TYPE": "**", "CONSTELLATION": "And", "COMPONENT": "AB"},
+    {"NAME": "BU17", "GROUP": "BU17", "TYPE": "**", "CONSTELLATION": "And", "COMPONENT": "AC"},
+    {"GROUP": "ZZ99", "TYPE": "**", "CONSTELLATION": "Sge"},
+    {"NAME": "ZZ99", "GROUP": "ZZ99", "TYPE": "**", "CONSTELLATION": "Sge", "COMPONENT": "AB"}
+]

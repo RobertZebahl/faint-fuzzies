@@ -1,0 +1,15 @@
+[
+    {
+        "ID": "anna-example",
+        "FIRSTNAME": "Anna",
+        "SURNAME": "Example",
+        "COUNTRY": "Germany"
+    },
+    {
+        "ID": "dana-example",
+        "FIRSTNAME": "Dana",
+        "SURNAME": "Example",
+        "COUNTRY": "Germany",
+        "SCOPE": "GLOBAL"
+    }
+]

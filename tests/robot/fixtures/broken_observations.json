@@ -1,0 +1,22 @@
+[
+    {"NAME": "Bad date", "TYPE": "Gx", "OBSERVATIONS": [
+        {"DATE": "01.01.2020", "OPTIC": "A"}
+    ]},
+    {"NAME": "Bad order", "TYPE": "Gx", "OBSERVATIONS": [
+        {"DATE": "01.01.2020", "TIME": "23:00-22:00", "OPTIC": "A"}
+    ]},
+    {"NAME": "Bad optic", "TYPE": "Gx", "OBSERVATIONS": [
+        {"OPTIC": "R,70"}
+    ]},
+    {"NAME": "Bad visibility", "TYPE": "Gx", "OBSERVATIONS": [
+        {"OPTIC": "N,200,1200", "VISIBILITY": "100,OIII"}
+    ]},
+    {"NAME": "Warnings", "TYPE": "Gx", "OBSERVATIONS": [
+        {"OPTIC": "X,70,400", "BORTLE": "ten", "COLOUR": "blue"}
+    ]},
+    {"NAME": "Not a list", "TYPE": "Gx", "OBSERVATIONS": "none"},
+    {"NAME": "Not an object", "TYPE": "Gx", "OBSERVATIONS": ["text"]},
+    {"NAME": "Good", "TYPE": "Gx", "OBSERVATIONS": [
+        {"DATE": "01.01.2020", "TIME": "21:00", "OPTIC": "A"}
+    ]}
+]

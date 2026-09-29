@@ -1,0 +1,10 @@
+[
+    {"NAME": "Messier 13, NGC6205", "TYPE": "GC", "CONSTELLATION": "Her", "COORDINATES": "165241.40,+362735.00",
+     "SIZE": "20", "OBSERVATIONS": [
+        {"OPTIC": "B,10x50", "VISIBILITY": "EASY", "SKETCH": "m13.jpg", "DESCRIPTION_DE": "Hell", "DESCRIPTION_EN": "Bright"},
+        {"OPTIC": "B,10x50", "VISIBILITY": "EASY", "SKETCH": "gone.jpg", "DESCRIPTION_DE": "Zeichnung fehlt", "DESCRIPTION_EN": "Sketch missing"}
+    ]},
+    {"NAME": "Melotte 20", "TYPE": "OC", "CONSTELLATION": "Per", "COORDINATES": "032700.00,+485000.00", "SIZE": "5.0", "PUBLISH_WITHOUT_OBSERVATION": true, "OBSERVATIONS": [
+        {"DESCRIPTION_DE": "Kopf", "DESCRIPTION_EN": "Header", "IMAGE": "header.jpg"}
+    ]}
+]

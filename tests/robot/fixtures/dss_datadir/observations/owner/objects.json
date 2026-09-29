@@ -1,0 +1,6 @@
+[
+    {"NAME": "Alpha", "TYPE": "GC", "CONSTELLATION": "Her", "COORDINATES": "010447.80,+020704.00", "SIZE": "5.0"},
+    {"NAME": "Beta", "TYPE": "GC", "CONSTELLATION": "Her", "COORDINATES": "000001.70,-471628.30", "DSS": "dss2blue,15"},
+    {"NAME": "Gamma", "TYPE": "GC", "CONSTELLATION": "Her", "COORDINATES": "120000.00,+100000.00", "DISABLE_DSS": true},
+    {"NAME": "Delta", "TYPE": "GC", "CONSTELLATION": "Her", "COORDINATES": "020000.00,+150000.00"}
+]

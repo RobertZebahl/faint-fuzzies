@@ -1,0 +1,14 @@
+[
+    {"NAME": "Half bad", "TYPE": "Gx", "OBSERVATIONS": [
+        {"OPTIC": "R,70"},
+        {"DATE": "01.01.2020", "TIME": "21:00", "OPTIC": "A"}
+    ]},
+    {"NAME": "Header and a bad one", "TYPE": "Gx", "OBSERVATIONS": [
+        {"DESCRIPTION_DE": "Allgemein", "DESCRIPTION_EN": "General"},
+        {"OPTIC": "R,70"}
+    ]},
+    {"NAME": "Only a header", "TYPE": "Gx", "OBSERVATIONS": [
+        {"DESCRIPTION_DE": "Allgemein", "DESCRIPTION_EN": "General"}
+    ]},
+    {"NAME": "No observations", "TYPE": "Gx"}
+]

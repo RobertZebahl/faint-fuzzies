@@ -1,0 +1,11 @@
+[
+    {"NAME": "Mond|Moon, Luna", "TYPE": "C,S", "COLOUR": "grey"},
+    {"NAME": "M 31", "CONSTELLATION": "And", "MAGNITUDE": "v3.4", "OBSERVATIONS": [
+        {"OPTIC": "B,10x50", "VISIBILITY": "EASY,OIII", "SKETCH": "m31.jpg",
+            "DESCRIPTION_DE": "Groß.",
+            "DESCRIPTION_EN": "Big."},
+        {"OPTIC": "A",
+            "DESCRIPTION_DE": "Only German."},
+        {"OPTIC": "A", "DESCRIPTION": "   spaces kept in description  "}
+    ]}
+]

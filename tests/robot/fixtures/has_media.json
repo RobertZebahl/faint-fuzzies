@@ -1,0 +1,34 @@
+[
+    {
+        "NAME": "WithPhotograph",
+        "TYPE": "Gx",
+        "CONSTELLATION": "Cet",
+        "OBSERVATIONS": [
+            {"OPTIC": "N,200,1200", "PHOTOGRAPH": "photo.jpg"}
+        ]
+    },
+    {
+        "NAME": "WithSketch",
+        "TYPE": "Gx",
+        "CONSTELLATION": "Cet",
+        "OBSERVATIONS": [
+            {"OPTIC": "N,200,1200", "SKETCH": "sketch.jpg"}
+        ]
+    },
+    {
+        "NAME": "WithImage",
+        "TYPE": "Gx",
+        "CONSTELLATION": "Cet",
+        "OBSERVATIONS": [
+            {"IMAGE": "header.jpg"}
+        ]
+    },
+    {
+        "NAME": "Plain",
+        "TYPE": "Gx",
+        "CONSTELLATION": "Cet",
+        "OBSERVATIONS": [
+            {"OPTIC": "N,200,1200", "DESCRIPTION": "Nothing attached."}
+        ]
+    }
+]

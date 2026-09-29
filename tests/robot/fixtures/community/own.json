@@ -1,0 +1,17 @@
+[
+    {"NAME": "Messier 13, NGC6205", "TYPE": "GC", "CONSTELLATION": "Her"},
+    {"NAME": "Melotte 20", "TYPE": "OC", "CONSTELLATION": "Per"},
+    {"NAME": "IC348", "TYPE": "OC", "CONSTELLATION": "Per"},
+    {"NAME": "IC348", "TYPE": "BN", "CONSTELLATION": "Per"},
+    {"NAME": "NGC752", "TYPE": "OC", "CONSTELLATION": "And", "OBSERVATIONS": [
+        {"DATE": "02.10.2011", "TIME": "22:20", "OPTIC": "B,8x42", "VISIBILITY": "3"}
+    ]},
+    {"GROUP": "alpha Lyr, 3 Lyr, Vega", "TYPE": "**", "CONSTELLATION": "Lyr"},
+    {"NAME": "H5 39", "GROUP": "alpha Lyr, 3 Lyr, Vega", "TYPE": "**", "CONSTELLATION": "Lyr", "COMPONENT": "AB", "DISABLE_WDS": true},
+    {"NAME": "STFB9", "GROUP": "alpha Lyr, 3 Lyr, Vega", "TYPE": "**", "CONSTELLATION": "Lyr", "COMPONENT": "AC", "DISABLE_WDS": true},
+    {"GROUP": "2 Sge", "TYPE": "**", "CONSTELLATION": "Sge"},
+    {"NAME": "HDS2753, 2 Sge", "GROUP": "2 Sge", "TYPE": "**", "CONSTELLATION": "Sge", "COMPONENT": "Aa-Ab"},
+    {"NAME": "STFA41, 2 Sge", "GROUP": "2 Sge", "TYPE": "**", "CONSTELLATION": "Sge", "COMPONENT": "AB"},
+    {"GROUP": "Arp23", "TYPE": "GxG", "CONSTELLATION": "Vir"},
+    {"NAME": "NGC4625", "GROUP": "Arp23", "TYPE": "Gx", "CONSTELLATION": "CVn"}
+]

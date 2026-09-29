@@ -1,0 +1,42 @@
+[
+    {"GROUP": "2 Sge", "TYPE": "**", "CONSTELLATION": "Sge", "RATING": 2, "PROJECT_DOUBLE_STARS_LISTS": "BC", "OBSERVATIONS": [
+        {"DESCRIPTION_DE": "Ein Hinweis.", "DESCRIPTION_EN": "A hint."}
+    ]},
+    {"NAME": "HDS2753, 2 Sge", "GROUP": "2 Sge", "TYPE": "**", "CONSTELLATION": "Sge", "COORDINATES": "192422.00,+165600", "COMPONENT": "Aa-Ab"},
+    {"NAME": "STFA41, 2 Sge", "GROUP": "2 Sge", "TYPE": "**", "CONSTELLATION": "Sge", "COMPONENT": "AB", "OBSERVATIONS": [
+        {"OPTIC": "R,80,500", "VISIBILITY": "150,EASY", "SKETCH": "a.jpg", "DESCRIPTION_DE": "Getrennt.", "DESCRIPTION_EN": "Split."},
+        {"DATE": "29.09.2011", "TIME": "22:30", "OPTIC": "R,80,500", "VISIBILITY": "150,1", "DESCRIPTION": "privat"}
+    ]},
+    {"NAME": "STF1884", "TYPE": "**", "CONSTELLATION": "Boo", "COORDINATES": "140000.00,+000000", "RATING": 3, "PROJECT_DOUBLE_STARS_LISTS": "M", "OBSERVATIONS": [
+        {"OPTIC": "N,200,1200", "VISIBILITY": "150,EASY", "DESCRIPTION_DE": "Zwei.", "DESCRIPTION_EN": "Two."}
+    ]},
+    {"NAME": "STF777", "TYPE": "**", "CONSTELLATION": "Lyr", "COORDINATES": "180000.00,+300000", "DISABLE_PROJECT_DOUBLE_STARS": true, "OBSERVATIONS": [
+        {"OPTIC": "R,80,500", "DESCRIPTION_DE": "Nicht im Projekt.", "DESCRIPTION_EN": "Not in the project."}
+    ]},
+    {"NAME": "Messier 13, NGC6205", "TYPE": "GC", "CONSTELLATION": "Her", "COORDINATES": "164142.00,+362800", "PROJECT_DEEP_SKY_WITH_BINOCULARS_RATING": 2, "OBSERVATIONS": [
+        {"OPTIC": "B,10x50", "BORTLE": "4", "VISIBILITY": "EASY", "DESCRIPTION_DE": "Hell.", "DESCRIPTION_EN": "Bright."},
+        {"OPTIC": "N,200,1200", "VISIBILITY": "200,EASY", "DESCRIPTION_DE": "Aufgelöst.", "DESCRIPTION_EN": "Resolved."},
+        {"DATE": "29.09.2011", "TIME": "23:00", "OPTIC": "B,10x50", "VISIBILITY": "2"}
+    ]},
+    {"NAME": "Messier 42", "TYPE": "BN", "CONSTELLATION": "Ori", "COORDINATES": "053500.00,-052300", "OBSERVATIONS": [
+        {"OPTIC": "A", "VISIBILITY": "EASY", "DESCRIPTION_DE": "Mit bloßem Auge.", "DESCRIPTION_EN": "Naked eye."}
+    ]},
+    {"NAME": "Messier 40", "TYPE": "**", "CONSTELLATION": "UMa", "COORDINATES": "122200.00,+580500", "OBSERVATIONS": [
+        {"OPTIC": "B,10x50", "DESCRIPTION_DE": "Ein Doppelstern.", "DESCRIPTION_EN": "A double star."}
+    ]},
+    {"NAME": "Messier 45", "TYPE": "OC", "CONSTELLATION": "Tau", "PUBLISH_WITHOUT_OBSERVATION": true, "OBSERVATIONS": [
+        {"DESCRIPTION_DE": "Nur ein Hinweis.", "DESCRIPTION_EN": "Only a note."}
+    ]},
+    {"NAME": "NGC752", "TYPE": "OC", "CONSTELLATION": "And", "OBSERVATIONS": [
+        {"OPTIC": "N,200,1200", "DESCRIPTION_DE": "Fernrohr.", "DESCRIPTION_EN": "Telescope."}
+    ]},
+    {"NAME": "Star1", "TYPE": "*", "CONSTELLATION": "Cyg", "OBSERVATIONS": [
+        {"OPTIC": "B,10x50", "DESCRIPTION_DE": "Ein Stern.", "DESCRIPTION_EN": "A star."}
+    ]},
+    {"GROUP": "Arp23", "TYPE": "GxG", "CONSTELLATION": "Vir", "OBSERVATIONS": [
+        {"OPTIC": "B,10x50", "DESCRIPTION_DE": "Eine Gruppe.", "DESCRIPTION_EN": "A group."}
+    ]},
+    {"NAME": "Mond|Moon", "TYPE": "S", "OBSERVATIONS": [
+        {"OPTIC": "R,70,400", "DESCRIPTION_DE": "Der Mond.", "DESCRIPTION_EN": "The Moon."}
+    ]}
+]

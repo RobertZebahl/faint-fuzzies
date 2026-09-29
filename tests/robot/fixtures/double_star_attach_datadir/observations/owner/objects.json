@@ -1,0 +1,21 @@
+[
+    {"NAME": "ZZZ Deep Sky Object", "TYPE": "Gx", "CONSTELLATION": "And", "COORDINATES": "000000.00,+400000.00",
+     "OBSERVATIONS": [{"OPTIC": "A"}]},
+    {"NAME": "STFX1", "COMPONENT": "AB", "TYPE": "**", "NOTES": "Private note",
+     "OBSERVATIONS": [{"OPTIC": "A", "DESCRIPTION": "Clean split"}]},
+    {"NAME": "STFX2", "COMPONENT": "AC", "TYPE": "**",
+     "OBSERVATIONS": [{"OPTIC": "A", "SKETCH": "missing_sketch.jpg"}]},
+    {"NAME": "No Such Star", "TYPE": "**",
+     "OBSERVATIONS": [{"OPTIC": "A"}]},
+    {"TYPE": "**"},
+    {"NAME": "Zeta Mystery", "COMPONENT": "AB", "TYPE": "**",
+     "OBSERVATIONS": [{"OPTIC": "A", "DESCRIPTION": "Found via its alternative name"}]},
+    {"NAME": "IndependentDouble", "TYPE": "**", "DISABLE_WDS": true, "CONSTELLATION": "Lyr",
+     "COORDINATES": "183656.30,+384701.00", "COMPONENT": "AB"},
+    {"NAME": "STFW5", "COMPONENT": "AB", "TYPE": "**",
+     "OBSERVATIONS": [{"DATE": "02.10.2011", "TIME": "22:20", "OPTIC": "A"}]},
+    {"NAME": "STFV6, Nonexistent Double Star Name", "COMPONENT": "AB", "TYPE": "**",
+     "OBSERVATIONS": [{"OPTIC": "A", "DESCRIPTION": "Found despite one bad name"}]},
+    {"NAME": "STFU7, Shared Name", "COMPONENT": "AB", "TYPE": "**",
+     "OBSERVATIONS": [{"OPTIC": "A", "DESCRIPTION": "Found despite an ambiguous second name"}]}
+]

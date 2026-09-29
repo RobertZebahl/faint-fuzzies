@@ -1,0 +1,24 @@
+[
+    {"DATE": "29.09.2011-30.09.2011", "TIME": "21:30-00:30", "LOCATION": "Waldrand;50.1234;9.1234;140;1", "NELM": "5.0",
+        "EQUIPMENT": "Dobson 8\" f/6, Eyepiece A, Eyepiece B, Filter",
+        "DESCRIPTION": "Grenzgröße nur grob geschätzt, dürfte etwas besser sein."
+    },
+    {"DATE": "03.10.2011", "TIME": "21:00-23:00", "LOCATION": "Musterstadt Süd;50.2;9.2;142;1",
+        "COLOUR": "grey"
+    },
+    {"DATE": "01.11.2011-02.11.2011", "TIME": "22:00-01:30", "LOCATION": "Waldrand;50.1234;9.1234;140;1", "BORTLE": "4-", "NELM": "5.6", "SEEING": "2-3/5",
+        "EQUIPMENT": "Dobson 8\" f/6, Eyepiece A, Eyepiece B"
+    },
+    {"DATE": "12.07.2013-13.07.2013", "TIME": "23:15-02:00", "LOCATION": "Waldrand;50.1234;9.1234;140;1", "BORTLE": "4", "NELM": "6.1", "SQML": "21.0",
+        "EQUIPMENT": "Dobson 8\" f/6, Eyepiece C, Eyepiece D",
+        "DESCRIPTION": "Anfangs klar, dann Wolken. Ein Objekt stand im Gesichtsfeld des \"Okular A\".\nOhne die Wolken wäre es eine gute Nacht gewesen."
+    },
+    {"DATE": "28.10.2011-29.10.2011", "TIME": "21:30-01:00", "LOCATION": "Musterheide;50.0987;9.3456;160;1", "BORTLE": "5", "NELM": "5.4", "SEEING": "2-3/5",
+        "EQUIPMENT": "Dobson 8\" f/6, Eyepiece A, Eyepiece E (borrowed)",
+        "DESCRIPTION": "Grenzgröße weiterhin nur ungenau geschätzt. Zwei weitere Beobachter waren ebenfalls dabei."
+    },
+    {},
+    {
+        "EQUIPMENT": "Fernglas 10x50"
+    }
+]

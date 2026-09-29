@@ -1,0 +1,14 @@
+#!/bin/sh
+# A stand-in for real sshpass, for tests: upload.py invokes ["sshpass", "-e", "rsync", ...], and it is this
+# fake that Python's subprocess actually runs - it never talks to a real network or host. It records its own
+# argv (one per line) and whether SSHPASS was set, to $FAKE_SSHPASS_LOG, then exits with $FAKE_SSHPASS_EXIT
+# (default 0) - so a test can both assert on the exact rsync command upload.py built and control what rsync
+# is pretended to have returned.
+: > "$FAKE_SSHPASS_LOG"
+for arg in "$@"; do
+    echo "$arg" >> "$FAKE_SSHPASS_LOG"
+done
+if [ -n "$SSHPASS" ]; then
+    echo "SSHPASS=$SSHPASS" >> "$FAKE_SSHPASS_LOG"
+fi
+exit "${FAKE_SSHPASS_EXIT:-0}"

@@ -1,0 +1,14 @@
+[
+ {
+  "NAME": "OthersBadSize",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "SIZE": "a,b"
+ },
+ {
+  "NAME": "OthersFine",
+  "TYPE": "Gx",
+  "CONSTELLATION": "Cet",
+  "SIZE": "1,2"
+ }
+]

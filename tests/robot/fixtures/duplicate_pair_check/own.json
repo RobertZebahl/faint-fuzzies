@@ -1,0 +1,6 @@
+[
+    {"NAME": "DUP1", "TYPE": "**", "CONSTELLATION": "Lyr", "COMPONENT": "AB"},
+    {"NAME": "dup1", "TYPE": "**", "CONSTELLATION": "Lyr", "COMPONENT": "ba"},
+    {"NAME": "DUP1", "TYPE": "**", "CONSTELLATION": "Lyr", "COMPONENT": "AC"},
+    {"NAME": "NODUP1", "TYPE": "**", "CONSTELLATION": "Lyr"}
+]

@@ -1,0 +1,24 @@
+[
+    {"NAME": "Fine", "TYPE": "Gx", "CONSTELLATION": "Cet", "COORDINATES": "010203.4,+020304.5", "OBSERVATIONS": [
+        {"OPTIC": "A", "DESCRIPTION_EN": "Seen."}
+    ]},
+    {"NAME": "Unknown Type", "TYPE": "Zz", "CONSTELLATION": "Cet", "COORDINATES": "010203.4,+020304.5"},
+    {"TYPE": "Gx", "CONSTELLATION": "Cet"},
+    "just some text",
+    {"NAME": "Half Bad", "TYPE": "Gx", "CONSTELLATION": "Cet", "COORDINATES": "010203.4,+020304.5", "OBSERVATIONS": [
+        {"OPTIC": "R,70"},
+        {"OPTIC": "A", "DESCRIPTION_EN": "Seen."}
+    ]},
+    {"NAME": "Only Bad", "TYPE": "Gx", "CONSTELLATION": "Cet", "COORDINATES": "010203.4,+020304.5", "OBSERVATIONS": [
+        {"OPTIC": "R,70"}
+    ]},
+    {"NAME": "Missing Sketch", "TYPE": "Gx", "CONSTELLATION": "Cet", "COORDINATES": "010203.4,+020304.5", "OBSERVATIONS": [
+        {"OPTIC": "A", "SKETCH": "gone.jpg"}
+    ]},
+    {"NAME": "Warned", "TYPE": "Gx", "CONSTELLATION": "Cet", "COORDINATES": "010203.4,+020304.5", "FOO": "bar", "OBSERVATIONS": [
+        {"OPTIC": "A", "DESCRIPTION_EN": "Seen."}
+    ]},
+    {"NAME": "Not Placed", "TYPE": "Gx", "CONSTELLATION": "Cet", "OBSERVATIONS": [
+        {"OPTIC": "A", "DESCRIPTION_EN": "Seen."}
+    ]}
+]

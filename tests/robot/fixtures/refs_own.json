@@ -1,0 +1,13 @@
+[
+    {"NAME": "M 31, NGC224, Andromedagalaxie|Andromeda Galaxy", "TYPE": "Gx", "CONSTELLATION": "And", "OBSERVATIONS": [
+        {"DATE": "29.09.2011", "TIME": "22:00", "OPTIC": "N,200,1200", "VISIBILITY": "133,2", "SKETCH": "m31.jpg"}
+    ]},
+    {"NAME": "H5 82", "TYPE": "OC", "CONSTELLATION": "Cas"},
+    {"NAME": "Albireo", "TYPE": "*", "CONSTELLATION": "Cyg"},
+    {"GROUP": "2 Sge", "TYPE": "**", "CONSTELLATION": "Sge"},
+    {"NAME": "HDS2753, 2 Sge", "GROUP": "2 Sge", "TYPE": "**", "CONSTELLATION": "Sge", "COMPONENT": "Aa-Ab"},
+    {"NAME": "STFA41, 2 Sge", "GROUP": "2 Sge", "TYPE": "**", "CONSTELLATION": "Sge", "COMPONENT": "AB", "OBSERVATIONS": [
+        {"DATE": "29.09.2011", "TIME": "22:30", "OPTIC": "R,80,500", "VISIBILITY": "150,3"}
+    ]},
+    {"NAME": "STF1884", "TYPE": "**", "CONSTELLATION": "Boo"}
+]

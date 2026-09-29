@@ -1,0 +1,116 @@
+[
+    {
+        "GROUP": "SYS1",
+        "TYPE": "**",
+        "CONSTELLATION": "Lyr",
+        "COORDINATES": "183656.30,+384701.00",
+        "DISABLE_WDS": true
+    },
+    {
+        "NAME": "AAA1",
+        "GROUP": "SYS1",
+        "TYPE": "**",
+        "CONSTELLATION": "Lyr",
+        "COMPONENT": "AB",
+        "COORDINATES": "183656.30,+384701.00",
+        "DISABLE_WDS": true
+    },
+    {
+        "NAME": "BBB2",
+        "GROUP": "SYS1",
+        "TYPE": "**",
+        "CONSTELLATION": "Lyr",
+        "COMPONENT": "CD",
+        "COORDINATES": "183656.30,+384701.00",
+        "DISABLE_WDS": true
+    },
+    {
+        "NAME": "SOLO3",
+        "TYPE": "**",
+        "CONSTELLATION": "Lyr",
+        "COMPONENT": "AB",
+        "COORDINATES": "183656.30,+384701.00",
+        "DISABLE_WDS": true
+    },
+    {
+        "NAME": "PLAIN7",
+        "TYPE": "**",
+        "CONSTELLATION": "Lyr",
+        "COORDINATES": "183656.30,+384701.00",
+        "DISABLE_WDS": true
+    },
+    {
+        "NAME": "TWIN8",
+        "TYPE": "**",
+        "CONSTELLATION": "Lyr",
+        "COMPONENT": "AB",
+        "COORDINATES": "183656.30,+384701.00",
+        "DISABLE_WDS": true
+    },
+    {
+        "NAME": "TWIN8",
+        "TYPE": "**",
+        "CONSTELLATION": "Lyr",
+        "COMPONENT": "AC",
+        "COORDINATES": "183656.30,+384701.00",
+        "DISABLE_WDS": true
+    },
+    {
+        "GROUP": "JOIN9A & JOIN9B",
+        "TYPE": "**",
+        "CONSTELLATION": "Lyr",
+        "COORDINATES": "190000.00,+300000.00",
+        "DISABLE_WDS": true
+    },
+    {
+        "NAME": "JOIN9A",
+        "GROUP": "JOIN9A & JOIN9B",
+        "TYPE": "**",
+        "CONSTELLATION": "Lyr",
+        "COMPONENT": "AB",
+        "COORDINATES": "183656.30,+384701.00",
+        "DISABLE_WDS": true
+    },
+    {
+        "NAME": "JOIN9B",
+        "GROUP": "JOIN9A & JOIN9B",
+        "TYPE": "**",
+        "CONSTELLATION": "Lyr",
+        "COMPONENT": "AC",
+        "COORDINATES": "183656.30,+384701.00",
+        "DISABLE_WDS": true
+    },
+    {
+        "NAME": "SOLO4",
+        "TYPE": "**",
+        "CONSTELLATION": "Lyr",
+        "COMPONENT": "AB-C",
+        "COORDINATES": "183656.30,+384701.00",
+        "DISABLE_WDS": true
+    },
+    {
+        "GROUP": "G6",
+        "TYPE": "**",
+        "CONSTELLATION": "Lyr",
+        "COORDINATES": "183656.30,+384701.00",
+        "DISABLE_WDS": true
+    },
+    {
+        "NAME": "MULTI6",
+        "GROUP": "G6",
+        "TYPE": "**",
+        "CONSTELLATION": "Lyr",
+        "COMPONENT": "A-BC",
+        "COORDINATES": "183656.30,+384701.00",
+        "DISABLE_WDS": true
+    },
+    {
+        "NAME": "MULTI6",
+        "GROUP": "G6",
+        "TYPE": "**",
+        "CONSTELLATION": "Lyr",
+        "COMPONENT": "AB-C",
+        "COORDINATES": "183656.30,+384701.00",
+        "DISABLE_WDS": true
+    }
+]

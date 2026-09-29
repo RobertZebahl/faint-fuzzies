@@ -1,0 +1,76 @@
+[project]
+name = "faint-fuzzies"
+version = "0.1.0"
+description = "Catalogues, observations and observing projects for visual deep-sky and double-star observers"
+readme = "README.md"
+authors = [
+    { name = "Robert Zebahl", email = "r.zebahl@gmx.de" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "astropy>=7.1,<9",
+    "jinja2>=3.1.6,<4",
+]
+
+[project.optional-dependencies]
+ui = [
+    "nicegui>=3.0,<4",
+    "matplotlib>=3.9,<4",
+    "numpy>=2.0,<3",
+    "pillow>=11.0,<13",
+    "starlette>=1.3,<2",
+]
+upload = [
+    "keyring>=25,<26",
+]
+
+[project.scripts]
+faint-fuzzies = "faint_fuzzies.cli:main"
+
+[dependency-groups]
+dev = [
+    "robotframework>=7.0",
+    "ruff>=0.16,<0.17",
+    "pylint>=4.0,<5",
+    "sphinx>=8.0,<9",
+    "coverage>=7.6,<8",
+    "faint-fuzzies[ui]",
+    "faint-fuzzies[upload]",
+    "ty>=0.0.85",
+]
+
+[build-system]
+requires = ["uv_build>=0.12.6,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 120
+extend-exclude = ["reports"]
+
+[tool.pylint.main]
+py-version = "3.12"
+ignore-paths = ["^reports/.*$"]
+
+[tool.pylint.format]
+max-line-length = 120
+
+[tool.pylint."messages control"]
+disable = [
+    "missing-module-docstring",
+    "missing-class-docstring",
+    "missing-function-docstring",
+    "import-outside-toplevel",
+]
+
+[tool.coverage.run]
+source = ["src/faint_fuzzies"]
+data_file = "build/coverage/.coverage"
+parallel = true
+relative_files = true
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+
+[tool.coverage.html]
+directory = "build/coverage/html"

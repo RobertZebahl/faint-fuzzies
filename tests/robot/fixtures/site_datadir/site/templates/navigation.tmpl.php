@@ -1,0 +1,2 @@
+LAST_UPDATE:{{ LAST_UPDATE }}
+{{ CONTENT }}

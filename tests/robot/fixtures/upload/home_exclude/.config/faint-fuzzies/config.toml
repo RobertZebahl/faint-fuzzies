@@ -1,0 +1,6 @@
+[upload]
+host = "example.test"
+user = "testuser"
+remote_path = "/var/www/faint-fuzzies"
+port = 2222
+exclude = ["logs/"]
