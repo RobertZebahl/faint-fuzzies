@@ -1,0 +1,11 @@
+[
+    {"NAME": "3C48, 0134+329", "TYPE": "Q", "CONSTELLATION": "Tri", "COORDINATES": "013736.00,+330900", "MAGNITUDE": "v16.5"},
+    {"NAME": "IC2177, Gum2, Sh2-296, RCW1", "TYPE": "BN", "CONSTELLATION": "Mon", "COORDINATES": "070506.00,-104200", "SIZE": "20.0,20.0,", "DESCRIPTION": "Class: E; NGC description: pB;eL;iR;v dif; Notes: Streamer incl bright patches NGC 2337 & Gum 1;Eagle nebula"},
+    {"NAME": "NGC5, UGC62", "TYPE": "Gx", "CONSTELLATION": "And", "COORDINATES": "000748.00,+352200", "MAGNITUDE": "v13.3", "SIZE": "1.2,0.7,115", "DESCRIPTION": "Class: Elliptical; NGC description: vF;vS;N=*13;14; Notes: compact"},
+    {"NAME": "NGC9, UGC78", "TYPE": "Gx", "CONSTELLATION": "Peg", "COORDINATES": "000854.00,+234900", "MAGNITUDE": "v13.6", "SIZE": "1.1,0.7,155", "DESCRIPTION": "Class: Sbp; NGC description: F;R;*9;10 sf; Notes: Peculiar;disturbed;B main body 0.45x0.25"},
+    {"NAME": "NGC10, ESO349-32", "TYPE": "Gx", "CONSTELLATION": "Scl", "COORDINATES": "000836.00,-335200", "MAGNITUDE": "v12.5", "SIZE": "2.4,1.2,25", "DESCRIPTION": "Class: SBbc; NGC description: F;cL;vlE;glbM"},
+    {"NAME": "NGC44", "TYPE": "**", "CONSTELLATION": "And", "COORDINATES": "001312.00,+311700", "DESCRIPTION": "NGC description: eF;vS"},
+    {"NAME": "NGC206", "TYPE": "OC,BN,EG", "CONSTELLATION": "And", "COORDINATES": "004030.00,+404400", "MAGNITUDE": "v12.8", "SIZE": "1.8,0.6,", "DESCRIPTION": "Class: Pec; NGC description: vF;vL;mE 0 degrees; Notes: H V 36;A star cloud in the south end of Andromeda Galaxy"},
+    {"NAME": "NGC2973", "CONSTELLATION": "Ant", "COORDINATES": "094136.00,-300300", "DESCRIPTION": "NGC description: eF;pS;*8 f"},
+    {"NAME": "PK130-11.1, M1-1", "TYPE": "PN", "CONSTELLATION": "And", "COORDINATES": "013718.00,+502800", "MAGNITUDE": "v14.3", "SIZE": "0.1,,"}
+]

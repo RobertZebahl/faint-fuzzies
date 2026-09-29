@@ -1,0 +1,5 @@
+[
+    {"NAME": "NGC6992 & NGC6995 & IC1340, Eastern Veil", "GROUP": "Veil A & Veil B", "TYPE": "BN", "CONSTELLATION": "Cyg", "COORDINATES": "205630,+312300"},
+    {"NAME": "NGC1", "GROUP": "Veil A & Veil B", "TYPE": "Gx", "CONSTELLATION": "Peg", "COORDINATES": "000000,+000000"},
+    {"GROUP": "Twin X & Twin Y", "TYPE": "OC", "CONSTELLATION": "Cas", "COORDINATES": "000000,+000000"}
+]

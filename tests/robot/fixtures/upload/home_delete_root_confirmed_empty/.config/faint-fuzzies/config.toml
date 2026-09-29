@@ -1,0 +1,5 @@
+[upload]
+host = "example.test"
+user = "testuser"
+remote_path = ""
+confirm_delete_root = true

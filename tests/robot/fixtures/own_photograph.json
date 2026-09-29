@@ -1,0 +1,6 @@
+[
+    {"NAME": "Photo Double", "TYPE": "**", "CONSTELLATION": "Cyg", "COMPONENT": "AB", "COORDINATES": "200000.00,+400000.00",
+     "OBSERVATIONS": [
+        {"PHOTOGRAPH": "photo1.jpg", "DESCRIPTION_EN": "A photograph, optic not recorded."}
+     ]}
+]

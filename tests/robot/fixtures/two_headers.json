@@ -1,0 +1,10 @@
+[
+    {"NAME": "TwoHeaders", "TYPE": "Gx", "CONSTELLATION": "And", "OBSERVATIONS": [
+        {"DESCRIPTION_EN": "First general note."},
+        {"DATE": "01.01.2020", "TIME": "20:00", "OPTIC": "A", "VISIBILITY": "3"},
+        {"DESCRIPTION_EN": "Second general note."}
+    ]},
+    {"NAME": "OneHeader", "TYPE": "Gx", "CONSTELLATION": "And", "OBSERVATIONS": [
+        {"DESCRIPTION_EN": "Only note."}
+    ]}
+]

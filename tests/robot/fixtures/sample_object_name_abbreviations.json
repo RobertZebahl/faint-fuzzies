@@ -1,0 +1,4 @@
+[
+    {"pattern": "Messier (.*)", "templates": ["M{}"]},
+    {"pattern": "Trumpler (.*)", "templates": ["Tr{}"]}
+]

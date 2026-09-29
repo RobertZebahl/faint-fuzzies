@@ -1,0 +1,12 @@
+[
+    {
+        "names": "STFW5",
+        "alternative_names": "Extra Name",
+        "replace": false
+    },
+    {
+        "names": "STFT8",
+        "alternative_names": "Another Extra Name",
+        "replace": false
+    }
+]

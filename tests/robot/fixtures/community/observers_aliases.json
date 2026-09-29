@@ -1,0 +1,6 @@
+[
+    {"ID": "own", "FIRSTNAME": "Owner", "SURNAME": "Example", "ALIASES": ["owner-example"]},
+    {"ID": "owner-example", "FIRSTNAME": "Owner", "SURNAME": "Example"},
+    {"ID": "anna-example", "FIRSTNAME": "Anna", "SURNAME": "Example", "ALIASES": ["own"]},
+    {"ID": "bert-example", "FIRSTNAME": "Bert", "SURNAME": "Example", "ALIASES": "bert"}
+]

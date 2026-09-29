@@ -1,0 +1,6 @@
+[
+    {"NAME": "Test Galaxy, TG1", "TYPE": "Gx", "CONSTELLATION": "Cet", "COORDINATES": "010203.40,+020304.50", "EQUINOX": "J2000.0", "MAGNITUDE": "v10.3,b11.0", "SIZE": "8.0,5.0,164", "DSS": "dss2red,20", "NOTES": "a private note", "DESCRIPTION": "a text", "DISABLE_DSS": true, "PUBLISH_WITHOUT_OBSERVATION": true, "FOO": "bar"},
+    {"NAME": "Test Star", "TYPE": "*,C*", "CONSTELLATION": "Lyr", "COORDINATES": "180000.00,-451530.25", "MAGNITUDE": "v5.0-6.0,P350.5", "RED_STARS_LIST": true},
+    {"NAME": "Own Double", "TYPE": "**", "CONSTELLATION": "And", "COORDINATES": "023300.00,+123400", "MAGNITUDE": "v6.0 ; v8.0", "COMPONENT": "AB,12.5,220,2020", "RATING": 1, "PROJECT_DOUBLE_STARS_LISTS": "B"},
+    {"NAME": "Plain", "TYPE": "OC"}
+]

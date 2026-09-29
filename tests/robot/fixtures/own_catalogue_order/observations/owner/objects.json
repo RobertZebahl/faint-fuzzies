@@ -1,0 +1,16 @@
+[
+    {"NAME": "NGC2", "TYPE": "Gx"},
+    {"NAME": "STF1", "GROUP": "STF1", "TYPE": "**", "COMPONENT": "AC", "DISABLE_WDS": true},
+    {"NAME": "Sonne|Sun", "TYPE": "S"},
+    {"NAME": "Komet Hyakutake", "TYPE": "C,S"},
+    {"NAME": "NGC1", "TYPE": "Gx"},
+    {"GROUP": "STF1", "TYPE": "**", "DISABLE_WDS": true},
+    {"NAME": "Merkur", "TYPE": "P,S"},
+    {"NAME": "STF1", "GROUP": "STF1", "TYPE": "**", "COMPONENT": "AB", "DISABLE_WDS": true},
+    {"NAME": "Ceres", "TYPE": "A,S"},
+    {"NAME": "Mond|Moon", "TYPE": "S"},
+    {"NAME": "Polaris", "TYPE": "*"},
+    {"NAME": "ORD1", "TYPE": "**", "COMPONENT": "AB", "OBSERVATIONS": [
+        {"OPTIC": "A"}
+    ]}
+]

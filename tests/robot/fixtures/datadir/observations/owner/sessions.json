@@ -1,0 +1,8 @@
+[
+    {"DATE": "29.09.2011-30.09.2011", "TIME": "21:30-00:30", "LOCATION": "Waldrand;50.1234;9.1234;140;1", "NELM": "5.0",
+        "EQUIPMENT": "Dobson 8\" f/6"
+    },
+    {"DATE": "02.10.2011", "TIME": "22:00-23:59", "LOCATION": "Musterstadt Nord;50.2345;9.2345;145;1", "BORTLE": "7"},
+    {"DATE": "03.10.2011", "TIME": "20:00-22:00", "LOCATION": "Musterstadt Süd;50.2;9.2;142;1"},
+    {"DATE": "03.10.2011", "TIME": "21:00-23:00", "LOCATION": "Musterstadt Süd;50.2;9.2;142;1"}
+]

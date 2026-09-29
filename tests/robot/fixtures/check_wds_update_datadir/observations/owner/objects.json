@@ -1,0 +1,21 @@
+[
+    {
+        "NAME": "STFX1",
+        "COMPONENT": "AB",
+        "TYPE": "**"
+    },
+    {
+        "NAME": "STFY3",
+        "COMPONENT": "AB",
+        "TYPE": "**"
+    },
+    {
+        "NAME": "STFU7",
+        "COMPONENT": "AB",
+        "TYPE": "**"
+    },
+    {
+        "NAME": "No Such Designation",
+        "TYPE": "**"
+    }
+]

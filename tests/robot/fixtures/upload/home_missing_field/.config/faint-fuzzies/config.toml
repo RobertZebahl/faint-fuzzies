@@ -1,0 +1,3 @@
+[upload]
+host = "example.test"
+remote_path = "/var/www/faint-fuzzies"

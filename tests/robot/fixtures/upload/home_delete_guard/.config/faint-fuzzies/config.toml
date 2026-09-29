@@ -1,0 +1,4 @@
+[upload]
+host = "example.test"
+user = "testuser"
+remote_path = "/"

@@ -1,0 +1,15 @@
+[
+    {"NAME": "MagOwn", "TYPE": "Gx", "CONSTELLATION": "And", "MAGNITUDE": "v11.2"},
+    {"NAME": "MagRef", "TYPE": "**", "CONSTELLATION": "And", "COMPONENT": "AB"},
+    {"NAME": "MagPair", "TYPE": "**", "CONSTELLATION": "And", "MAGNITUDE": "v7.5;v11.0", "COMPONENT": "AB"},
+    {"NAME": "MagNone", "TYPE": "Gx", "CONSTELLATION": "And"},
+    {"NAME": "BigGx", "TYPE": "Gx", "CONSTELLATION": "And", "SIZE": "10,2"},
+    {"NAME": "SmallGx", "TYPE": "Gx", "CONSTELLATION": "And", "SIZE": "3,2"},
+    {"NAME": "RoundGx", "TYPE": "Gx", "CONSTELLATION": "And", "SIZE": "6,5"},
+    {"NAME": "CircularGx", "TYPE": "Gx", "CONSTELLATION": "And", "SIZE": "6"},
+    {"NAME": "RatedHigh", "TYPE": "Gx", "CONSTELLATION": "And", "RATING": 3},
+    {"NAME": "RatedLow", "TYPE": "Gx", "CONSTELLATION": "And", "RATING": 1},
+    {"NAME": "BinocularHigh", "TYPE": "OC", "CONSTELLATION": "And", "PROJECT_DEEP_SKY_WITH_BINOCULARS_RATING": 3},
+    {"NAME": "NotesMatch", "TYPE": "Gx", "CONSTELLATION": "And", "NOTES": "observe again with a wider field"},
+    {"NAME": "NotesOther", "TYPE": "Gx", "CONSTELLATION": "And", "NOTES": "nothing special"}
+]

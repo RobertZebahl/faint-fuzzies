@@ -1,0 +1,7 @@
+[
+    {"ID": "owner-example", "FIRSTNAME": "Owner", "SURNAME": "Example", "COUNTRY": "Germany", "SCOPE": "OWNER"},
+    {"ID": "anna-example", "FIRSTNAME": "Anna", "SURNAME": "Example", "COUNTRY": "Germany", "EMAIL": "anna-secret@example.org", "ALIASES": ["anna"]},
+    {"ID": "bert-example", "FIRSTNAME": "Bert", "SURNAME": "Example", "COUNTRY": "Austria"},
+    {"ID": "carla-example", "FIRSTNAME": "Carla", "SURNAME": "Example", "COUNTRY": "Germany"},
+    {"ID": "dana-example", "FIRSTNAME": "Dana", "SURNAME": "Example", "COUNTRY": "Germany", "SCOPE": "GLOBAL"}
+]

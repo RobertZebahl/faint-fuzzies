@@ -1,0 +1,8 @@
+[
+    {"NAME": "ZZZ Deep Sky Object", "TYPE": "Gx", "CONSTELLATION": "And", "COORDINATES": "000000.00,+400000.00",
+     "OBSERVATIONS": [{"OPTIC": "A"}]},
+    {"NAME": "Star1", "TYPE": "*", "CONSTELLATION": "And", "COORDINATES": "000000.00,+400000.00",
+     "OBSERVATIONS": [{"OPTIC": "A"}]},
+    {"NAME": "STFQ9", "COMPONENT": "AB", "TYPE": "**",
+     "OBSERVATIONS": [{"OPTIC": "A"}]}
+]

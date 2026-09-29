@@ -1,0 +1,17 @@
+[
+    {"NAME": "NGC1, Nickname", "TYPE": "Gx"},
+    {"NAME": "NGC1", "TYPE": "Gx"},
+    {"NAME": "ngc  2", "TYPE": "OC"},
+    {"NAME": "NGC 2", "TYPE": "OC"},
+    {"NAME": "NGC3", "TYPE": "OC"},
+    {"NAME": "NGC3", "TYPE": "BN"},
+    {"NAME": "STF1", "GROUP": "WDS00001+0001", "TYPE": "**", "COMPONENT": "AB"},
+    {"NAME": "STF1", "GROUP": "WDS00001+0001", "TYPE": "**", "COMPONENT": "AC"},
+    {"NAME": "STF2", "GROUP": "WDS00002+0002", "TYPE": "**", "COMPONENT": "AB"},
+    {"NAME": "STF2", "GROUP": "WDS00002+0002", "TYPE": "**", "COMPONENT": "BA"},
+    {"GROUP": "WDS00001+0001", "TYPE": "**"},
+    {"GROUP": "WDS00003+0003", "TYPE": "**"},
+    {"NAME": "Alone", "TYPE": "Gx"},
+    {"GROUP": "WDS00002+0002", "TYPE": "**"},
+    {"NAME": "Lonely3", "GROUP": "WDS00003+0003", "TYPE": "**", "COMPONENT": "AB"}
+]

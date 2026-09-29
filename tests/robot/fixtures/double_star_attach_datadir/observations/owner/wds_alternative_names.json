@@ -1,0 +1,6 @@
+[
+    {"names": "STFY3, WDS14000+1500", "alternative_names": "Zeta Mystery"},
+    {"names": "eps Aql", "alternative_names": "Old Catalog Name", "replace": true},
+    {"names": "STFX1", "alternative_names": "Should Not Apply"},
+    {"names": "STFZ4, Nonexistent Designation", "alternative_names": "Z4 Informal Name"}
+]
