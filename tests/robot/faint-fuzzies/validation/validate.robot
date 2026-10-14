@@ -410,14 +410,27 @@ A Partial Match With An Own Name The WDS Lacks Suggests Completing It
     [Documentation]    Fixture "redundant_group_check": PARTIALNICK1 tracks only one (PAIRG1) of the WDS system
     ...    WDS00015+0015's two pairs (PAIRG1 and PAIRH1), and its own group name also carries NICKNAME2, which
     ...    the WDS group does not have - unlike PARTIAL1, removing it would lose that name, so this suggests
-    ...    adding the missing pair (PAIRH1) instead of removing it.
+    ...    adding the missing pair (PAIRH1 AC) instead of removing it.
     ${result}=    Run Validate    ${{['redundant_group_check/own.json', 'redundant_group_check/wds.json']}}
     ${report}=    Parse JSON    ${result.stdout}
     ${found}=    Evaluate    [p for p in $report["findings"] if p["object"] == "PARTIALNICK1"]
     Length Should Be    ${found}    1
     Should Be Equal    ${found}[0][severity]    info
     Should Contain    ${found}[0][message]    covers 1 of the 2 pairs of the WDS group PARTIALNICK1
-    Should Contain    ${found}[0][message]    consider adding its missing pair(s) (PAIRH1) instead of removing it
+    Should Contain    ${found}[0][message]    consider adding its missing pair(s) (PAIRH1 AC) instead of removing it
+
+Missing Pairs Sharing A Name Are Told Apart By Their Component
+    [Documentation]    Fixture "redundant_group_check": PARTIALDUP1 tracks only PAIRM1 of the WDS system
+    ...    WDS00019+0019's three pairs; the other two (PAIRN1 AC and PAIRN1 AD) share one WDS designation,
+    ...    catalogued together under one discoverer code. Listing them by bare name alone would show "PAIRN1"
+    ...    twice with no way to tell which pair is which, so each is named with its Component too.
+    ${result}=    Run Validate    ${{['redundant_group_check/own.json', 'redundant_group_check/wds.json']}}
+    ${report}=    Parse JSON    ${result.stdout}
+    ${found}=    Evaluate    [p for p in $report["findings"] if p["object"] == "PARTIALDUP1"]
+    Length Should Be    ${found}    1
+    Should Be Equal    ${found}[0][severity]    info
+    Should Contain    ${found}[0][message]    covers 1 of the 3 pairs of the WDS group PARTIALDUP1
+    Should Contain    ${found}[0][message]    consider adding its missing pair(s) (PAIRN1 AC, PAIRN1 AD) instead of removing it
 
 Own Content Does Not Block A Case That Never Suggests Removal
     [Documentation]    Fixture "redundant_group_check": PARTIALNICKOBS1 is exactly like PARTIALNICK1 (tracks only
@@ -430,7 +443,7 @@ Own Content Does Not Block A Case That Never Suggests Removal
     Length Should Be    ${found}    1
     Should Be Equal    ${found}[0][severity]    info
     Should Contain    ${found}[0][message]    covers 1 of the 2 pairs of the WDS group PARTIALNICKOBS1
-    Should Contain    ${found}[0][message]    consider adding its missing pair(s) (PAIRL1) instead of removing it
+    Should Contain    ${found}[0][message]    consider adding its missing pair(s) (PAIRL1 AC) instead of removing it
 
 Own Content Blocks Removal But Not The Independent WDS-Name Info
     [Documentation]    Fixture "redundant_group_check": WDSEXTRAOBS1 is exactly like WDSEXTRA1 (fully covers its

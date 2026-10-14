@@ -27,7 +27,7 @@ from faint_fuzzies.domain.collection import Collection
 from faint_fuzzies.domain.findings import ERROR, INFO, WARNING, Finding
 from faint_fuzzies.domain.lists import Entry, herschel_names_without_reference
 from faint_fuzzies.domain.model import Object, ObjectAttribute, ObjectType, ObservationAttribute, split_names
-from faint_fuzzies.domain.names import PAIR, component_key, component_of, full_key, kind_of
+from faint_fuzzies.domain.names import PAIR, component_key, component_name, component_of, full_key, kind_of
 from faint_fuzzies.domain.references import References, wds_reference
 from faint_fuzzies.importers.common import missing_files
 from faint_fuzzies.site.listpages import PAGE_DESCRIPTIONS_FILE, read_page_descriptions
@@ -213,7 +213,7 @@ def wds_reference_findings(collection: Collection, references: References) -> li
                                         "double star pair has no reference to the WDS (set DISABLE_WDS if that "
                                         "is correct)"))
         elif len(matches) > 1:
-            names = ", ".join(m.label for m in matches)
+            names = ", ".join(_pair_identity(m) for m in matches)
             findings.append(Finding(obj.catalogue, obj.number, obj.label, ObjectAttribute.NAME, ERROR,
                                     f"double star pair matches {len(matches)} WDS entries ({names}) - a typo in "
                                     "one of its own names that happens to also be a real, unrelated WDS entry's, "
@@ -415,6 +415,17 @@ def duplicate_pair_findings(collection: Collection) -> list[Finding]:
     return sorted(findings, key=lambda p: p.record)
 
 
+def _pair_identity(obj: Object) -> str:
+    """A pair's label, with its written Component appended when it has one, so that pairs sharing a name (a
+    group of pairs catalogued together under one designation) can still be told apart in a list.
+
+    :param obj: the pair
+    :returns: "label" or, when the record gives a Component, "label COMPONENT"
+    """
+    component = component_name(obj)
+    return f"{obj.label} {component}" if component else obj.label
+
+
 def _has_own_content(obj: Object) -> bool:
     """Whether this Object's own record carries an own observation (a real one or a Header, either counts,
     since both live in OBSERVATIONS) or a NOTES remark. Never a community-attached observation from another
@@ -512,7 +523,8 @@ def redundant_group_findings(collection: Collection, references: References) -> 
                                         "or note of its own anywhere in it - removing it is recommended, nothing "
                                         "on the site would change, the WDS already has every one of its pairs"))
         else:
-            missing = ", ".join(m.label for m in collection.members_of(wds_group) if id(m) not in referenced)
+            missing = ", ".join(_pair_identity(m) for m in collection.members_of(wds_group)
+                                if id(m) not in referenced)
             if own_names_known:
                 if no_own_content:
                     findings.append(Finding(obj.catalogue, obj.number, obj.label, ObjectAttribute.GROUP, INFO,
