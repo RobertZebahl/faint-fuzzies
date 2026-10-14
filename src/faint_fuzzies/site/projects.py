@@ -142,14 +142,11 @@ def _entry(entry: Entry, locale: str, site: SiteData, anchors_used: set[str]) ->
     coordinates = format_coordinates(objects.get_coordinates(unit, members, site))
 
     components = []
-    pair_name_sets = [set(objects.get_display_names(p.record.get(ObjectAttribute.NAME), locale)) for p in pairs]
-    common = set.intersection(*pair_name_sets) if pairs else set()
+    _common, own_names_by_pair = objects.pair_name_commonality(pairs, locale)
     anchors = set(names)
-    for pair in pairs:
+    for pair, own_names in zip(pairs, own_names_by_pair):
         component = objects.get_pair_component(pair, site)
         primary, secondary = format_magnitude_pair(objects.get_magnitude(pair, site))
-        pair_names = objects.get_display_names(pair.record.get(ObjectAttribute.NAME), locale)
-        own_names = [n for n in pair_names if n not in common]
         anchors.update(own_names)
         row: dict[str, Any] = {}
         if primary:

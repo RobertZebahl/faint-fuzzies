@@ -342,6 +342,18 @@ def members_share_a_name(group: Object, members: list[Object]) -> bool:
     return common == set.union(*sets) and bool(group_names & common)
 
 
+def pair_name_commonality(pairs: list[Object], locale: str) -> tuple[set[str], list[list[str]]]:
+    """The names common to every one of `pairs`, and each pair's own names beyond that.
+
+    :param pairs: the pairs to compare
+    :param locale: "en" or "de"
+    :returns: the names common to every pair, and each pair's own names (in the same order as `pairs`)
+    """
+    name_lists = [get_display_names(p.record.get(ObjectAttribute.NAME), locale) for p in pairs]
+    common = set.intersection(*(set(names) for names in name_lists)) if name_lists else set()
+    return common, [[n for n in names if n not in common] for names in name_lists]
+
+
 def _double_star_components(row: dict[str, Any], pairs: list[Object], locale: str, site: SiteData,
                             equal_names: bool) -> None:
     """Fills in `row`'s DOUBLESTAR_COMPONENTS_HEAD and DOUBLESTAR_COMPONENTS: one entry per pair, with its
@@ -355,12 +367,10 @@ def _double_star_components(row: dict[str, Any], pairs: list[Object], locale: st
     """
     row["DOUBLESTAR_COMPONENTS_HEAD"] = "Components:" if locale == EN else "Komponenten:"
     row["DOUBLESTAR_COMPONENTS"] = []
-    name_sets = [set(get_display_names(p.record.get(ObjectAttribute.NAME), locale)) for p in pairs]
-    common = set.intersection(*name_sets) if name_sets else set()
-    for pair in pairs:
+    _common, own_names_by_pair = pair_name_commonality(pairs, locale)
+    for pair, own_names in zip(pairs, own_names_by_pair):
         component = get_pair_component(pair, site)
         primary, secondary = format_magnitude_pair(get_magnitude(pair, site))
-        own_names = [n for n in get_display_names(pair.record.get(ObjectAttribute.NAME), locale) if n not in common]
         row["DOUBLESTAR_COMPONENTS"].append({
             "DOUBLESTAR_COMPONENT_NAME": escape_html(", ".join(own_names) if not equal_names else ""),
             "DOUBLESTAR_COMPONENT_COMP": escape_html(component["name"] or ""),
