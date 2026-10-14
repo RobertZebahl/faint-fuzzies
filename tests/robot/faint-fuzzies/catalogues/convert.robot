@@ -27,26 +27,27 @@ A Single Pair System Stays A Plain Object
     Should Be Equal    ${pair}[DESCRIPTION]    Components 0.8", 246°, 1904
 
 A Group Is Written In Front Of Its First Pair
-    ${position}=    Evaluate    [i for i, r in enumerate($RECORDS) if r.get("GROUP") == "WDS00000+4004" and "NAME" not in r][0]
+    ${position}=    Evaluate    [i for i, r in enumerate($RECORDS) if r.get("GROUP") == "ES2543, WDS00000+4004" and "NAME" not in r][0]
     Should Be Equal    ${RECORDS}[${position + 1}][NAME]    ES2543, WDS00000+4004
     Should Be Equal    ${RECORDS}[${position + 1}][COMPONENT]    AB,4.4,253,2015
     Should Be Equal    ${RECORDS}[${position + 2}][COMPONENT]    AC,14.4,66,2015
 
 A Group Has Only Name Type Constellation And Coordinates
-    ${group}=    Group Named    WDS00000+4004
+    ${group}=    Group Named    ES2543, WDS00000+4004
     ${keys}=    Evaluate    sorted($group)
     Should Be Equal    ${keys}    ${{['CONSTELLATION', 'COORDINATES', 'GROUP', 'TYPE']}}
     Should Be Equal    ${group}[TYPE]    **
 
-A Group Is Named By Its Alternative Name And The WDS Id
-    [Documentation]    The WDS id always comes last, and a system without an alternative name has only the id.
+A Group Is Named By Every Name Common To All Its Pairs
+    [Documentation]    A designation shared by every pair (ES2543) is promoted like an alternative name would be;
+    ...    the WDS id always comes last, and a system without any shared name but the id has only the id.
     [Template]    Group Should Exist
     bet 1 Cyg, WDS19307+2758
     2 Sge, WDS19244+1656
-    WDS00000+4004
+    ES2543, WDS00000+4004
 
 Every Member Names Its Group And Ends With The WDS Id
-    ${members}=    Evaluate    [r for r in $RECORDS if r.get("GROUP") == "bet 1 Cyg, WDS19307+2758" and "NAME" in r]
+    ${members}=    Evaluate    [r for r in $RECORDS if r.get("GROUP") == "WDS19307+2758" and "NAME" in r]
     Length Should Be    ${members}    14
     FOR    ${member}    IN    @{members}
         Should Match Regexp    ${member}[NAME]    .+, bet 1 Cyg, WDS19307\\+2758$
@@ -81,11 +82,17 @@ Incomplete Coordinates Are Completed From The Precise Field Or The Identifier
     BRT66, WDS00149+4610        001453.00,+461002.00
 
 A Comma Inside An Alternative Name Is Written Like Any Name List
+    ${group}=    Group Named    Ca, Cb: KZ O, WDS05350-0530
+    Should Not Be Empty    ${group}
+
+A Pair Names Its Group By The WDS Id Alone
+    [Documentation]    The WDS id always names the group too, so it is enough to find it by - a pair does not
+    ...    need to repeat the group's other names, which live on the group's own record.
     ${pair}=    Record Named    REP106, Ca, Cb: KZ O, WDS05350-0530
-    Should Be Equal    ${pair}[GROUP]    Ca, Cb: KZ O, WDS05350-0530
+    Should Be Equal    ${pair}[GROUP]    WDS05350-0530
 
 Pairs With The Same Component Are Noted
-    Should Contain    ${SAMPLE_STDERR}    group WDS00140+2507: component AB occurs in lines 11, 12
+    Should Contain    ${SAMPLE_STDERR}    group POU10, WDS00140+2507: component AB occurs in lines 11, 12
 
 The Result Is In The Canonical Layout
     ${result}=    Run Format    --check    ${{['${SAMPLE_OUTPUT}']}}
@@ -116,8 +123,8 @@ Groups And Pairs Are Referenced By The Own Catalogue
     ${data}=    Parse JSON    ${result.stdout}
     ${found}=    Evaluate    {(o["names"] or o["groups"])[0]: [(r["catalogue"], (r["names"] or r["groups"])[0], r["groups"]) for r in o["references"]] for o in $data["objects"] if o["catalogue"] == "refs_own.json"}
     Should Be Equal    ${found}[2 Sge]    ${{[('wds_sample.json', '2 Sge', ['2 Sge', 'WDS19244+1656'])]}}
-    Should Be Equal    ${found}[HDS2753]    ${{[('wds_sample.json', 'HDS2753', ['2 Sge', 'WDS19244+1656'])]}}
-    Should Be Equal    ${found}[STFA41]    ${{[('wds_sample.json', 'STFA41', ['2 Sge', 'WDS19244+1656'])]}}
+    Should Be Equal    ${found}[HDS2753]    ${{[('wds_sample.json', 'HDS2753', ['WDS19244+1656'])]}}
+    Should Be Equal    ${found}[STFA41]    ${{[('wds_sample.json', 'STFA41', ['WDS19244+1656'])]}}
 
 Without An Output Parameter The Catalogue Goes To Stdout
     [Documentation]    The process library drops the final newline of captured output.

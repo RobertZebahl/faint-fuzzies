@@ -2,9 +2,11 @@
 
 Every line of the source is one pair. The pairs of a system share the WDS identifier; a system
 with two or more pairs becomes a Group. The group record is written in front of its first pair,
-carries the coordinates and constellation of that pair, and is named by the alternative name (a
-Bayer or Flamsteed name, when the source gives one) and the WDS id, which always comes last.
-Every pair keeps its own names, the WDS id last, and names its group in GROUP.
+carries the coordinates and constellation of that pair, and is named by every name common to
+all its pairs (a designation or an alternative name shared by every pair, and the WDS id, which
+every pair carries and so is always among them), in the order the names first occur. Every pair
+keeps its own names, the WDS id last, and names its group in GROUP by the WDS id alone - enough
+to find it, since the WDS id is always one of the group's own names too.
 """
 import re
 from dataclasses import dataclass
@@ -25,13 +27,13 @@ class _Pair:
 
     :ivar line: the line number in the source file, 1-based
     :ivar identifier: the WDS identifier shared by every pair of one system, or empty when the line gives none
-    :ivar alternative_name: the Bayer or Flamsteed name the line gives, or empty when it gives none
+    :ivar names: the pair's own names, in order, the WDS id last when the line gives an identifier
     :ivar component: the pair's component (e.g. "AB"), or empty when the line gives none
     :ivar record: the pair's own record, not yet knowing its GROUP
     """
     line: int
     identifier: str
-    alternative_name: str
+    names: tuple[str, ...]
     component: str
     record: dict[str, Any]
 
@@ -60,7 +62,7 @@ def convert_wds(lines: list[str]) -> Conversion:
             members.setdefault(pair.identifier, []).append(pair)
     systems = len(members) + sum(1 for p in pairs if not p.identifier)
 
-    group_names = {identifier: _group_name(identifier, systems) for identifier, systems in members.items()
+    group_names = {identifier: _group_name(systems) for identifier, systems in members.items()
                    if len(systems) > 1}
     written: set[str] = set()
     for pair in pairs:
@@ -72,21 +74,27 @@ def convert_wds(lines: list[str]) -> Conversion:
             written.add(pair.identifier)
             result.records.append(_group_record(group_name, pair.record))
             _note_duplicate_components(result, group_name, members[pair.identifier])
-        result.records.append({**pair.record, ObjectAttribute.GROUP: group_name})
+        result.records.append({**pair.record, ObjectAttribute.GROUP: f"WDS{pair.identifier}"})
     result.summary = f"converted {len(pairs)} pairs of {systems} systems; {len(group_names)} groups"
     return result
 
 
-def _group_name(identifier: str, pairs: list[_Pair]) -> str:
-    """The name a system's group record is written under: every distinct alternative name its pairs give,
-    in the order they first occur, followed by the WDS id, which always comes last.
+def _group_name(pairs: list[_Pair]) -> str:
+    """The name a system's group record is written under: every name common to all its pairs (always
+    including the WDS id, which every pair carries), in the order the names first occur.
 
-    :param identifier: the system's WDS identifier
     :param pairs: the system's pairs
     :returns: the formatted name list
     """
-    names = list(dict.fromkeys(p.alternative_name for p in pairs if p.alternative_name))
-    return joined_names([*names, f"WDS{identifier}"])
+    common = set.intersection(*(set(p.names) for p in pairs))
+    seen: set[str] = set()
+    names: list[str] = []
+    for pair in pairs:
+        for name in pair.names:
+            if name in common and name not in seen:
+                seen.add(name)
+                names.append(name)
+    return joined_names(names)
 
 
 def _group_record(name: str, first: dict[str, Any]) -> dict[str, Any]:
@@ -163,7 +171,7 @@ def _parse_pair(number: int, line: str) -> _Pair:
         record[ObjectAttribute.MAGNITUDE] = ";".join(magnitudes)
     record[ObjectAttribute.COMPONENT] = f"{component},{separation},{position_angle},{year}"
     record[ObjectAttribute.DESCRIPTION] = f'Components {first_separation}", {first_position_angle}°, {first_year}'
-    return _Pair(number, identifier, alternative_name, component, record)
+    return _Pair(number, identifier, tuple(names), component, record)
 
 
 def _right_ascension(precise: str, identifier: str) -> str:
