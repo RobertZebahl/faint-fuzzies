@@ -6,7 +6,7 @@ One page holds every list of the project: each entry says which lists it is in, 
 from typing import Any
 
 from faint_fuzzies.domain.lists import Entry, ListResult
-from faint_fuzzies.domain.model import Object, ObjectAttribute, ObservationAttribute
+from faint_fuzzies.domain.model import ObjectAttribute, ObservationAttribute
 from faint_fuzzies.domain.observation import FoundObservation, Observation, OpticType
 from faint_fuzzies.domain.observer import Observer, Scope
 from faint_fuzzies.domain.seen import is_observation_seen
@@ -137,7 +137,7 @@ def _entry(entry: Entry, locale: str, site: SiteData, anchors_used: set[str]) ->
     unit = entry.unit
     members = objects.sorted_members(entry, site) if unit.is_group else []
     pairs = members if unit.is_group else [unit]
-    names = _names(entry, members, locale)
+    names = _names(entry, locale)
     equal_names = objects.members_share_a_name(unit, members) if unit.is_group else True
     coordinates = format_coordinates(objects.get_coordinates(unit, members, site))
 
@@ -219,24 +219,16 @@ def _line(source: str) -> int:
     return int(tail) if tail.isdigit() else 0
 
 
-def _names(entry: Entry, members: list[Object], locale: str) -> list[str]:
-    """An entry's names: the unit's own (group name for a group, name for a pair), falling back to its
-    members' WDS names when a system only the WDS names has none of its own.
+def _names(entry: Entry, locale: str) -> list[str]:
+    """An entry's names: the unit's own, a group name for a group or a name for a pair.
 
     :param entry: the entry to name
-    :param members: the entry's members, when it is a group
     :param locale: "en" or "de"
     :returns: the names
     """
     unit = entry.unit
     attribute = ObjectAttribute.GROUP if unit.is_group else ObjectAttribute.NAME
-    names = objects.get_display_names(unit.record.get(attribute), locale)
-    if not names:  # a system that only the WDS names: the names of its pairs
-        for member in members:
-            for name in objects.get_display_names(member.record.get(ObjectAttribute.NAME), locale):
-                if name not in names:
-                    names.append(name)
-    return names
+    return objects.get_display_names(unit.record.get(attribute), locale)
 
 
 def _visual_key(observation: Observation) -> tuple:

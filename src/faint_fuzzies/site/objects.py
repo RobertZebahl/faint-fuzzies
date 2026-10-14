@@ -187,14 +187,14 @@ _WDS_ID = re.compile(r"WDS\d{5}[+-]\d{4}")
 
 def get_display_names(value: Any, locale: str | None) -> list[str]:
     """The names of a NAME or GROUP value as the pages show them: without the WDS id that ends the names of a
-    double star system.
+    double star system, unless the WDS id is the only name there is.
 
     :param value: the record's NAME or GROUP value
     :param locale: "en" or "de", or None for the raw (unlocalized) names
     :returns: the names
     """
     names = localized_names(str(value or ""), locale)
-    return names[:-1] if names and _WDS_ID.fullmatch(names[-1]) else names
+    return names[:-1] if len(names) > 1 and _WDS_ID.fullmatch(names[-1]) else names
 
 
 def _info(prop: str, value: str) -> dict[str, str]:
