@@ -1,4 +1,5 @@
-# pylint: disable=invalid-name  # module name must match the keyword-library class name (PascalCase)
+"""TaskPool (tasks.py): one task added between Reloads, at the back or the front, counted in the progress, and
+ignored when its key is already queued or running; failed tasks are recorded until the next Reload."""
 import threading
 import time
 
@@ -11,10 +12,9 @@ def _wait_until(condition, seconds=5):
         time.sleep(0.01)
 
 
-def run_added_tasks():
-    """Blocks the worker on a first task, then adds: one at the back, one at the front, a duplicate of the
-    first, one more at the back, and a duplicate of the running task. Releases the worker and returns what
-    add returned, the order the tasks ran in and the progress before and after."""
+def test_add_queues_one_task_without_replacing_the_batch():
+    """The worker is blocked on a first task while the test adds one at the back, one at the front, a duplicate of
+    the first, one more at the back, and a duplicate of the running task."""
     pool = TaskPool()
     order = []
     gate = threading.Event()
@@ -36,12 +36,14 @@ def run_added_tasks():
     before = pool.progress()
     gate.set()
     _wait_until(lambda: len(order) == 3 and pool.progress().get("dss") == (4, 4))
-    return {"returned": returned, "order": order, "before": before, "after": pool.progress()}
+    assert returned == [True, True, False, True, False]
+    assert order == ["front", "back", "third"]
+    assert before == {"dss": (0, 4)}
+    assert pool.progress() == {"dss": (4, 4)}
 
 
-def run_failing_tasks():
-    """Runs a task that returns False, one that raises, and one that works, and returns the failures the pool
-    recorded as (key, category, label, message); then resets the pool, which starts a batch without failures."""
+def test_a_task_that_returns_false_or_raises_is_recorded_as_a_failure():
+    """With what it was for and what happened; a task that works is not, and a Reload (reset) starts again."""
     pool = TaskPool()
 
     def raises():
@@ -52,6 +54,8 @@ def run_failing_tasks():
                 MediaTask("fine", "dss", lambda: True, "M 31")])
     pool.start()
     _wait_until(lambda: pool.progress().get("dss") == (2, 2) and pool.progress().get("orbit") == (1, 1))
-    found = [(f.key, f.category, f.label, f.message) for f in pool.failures()]
+    assert [(f.key, f.category, f.label, f.message) for f in pool.failures()] == [
+        ("no-result", "dss", "M 13 (objects.json)", "no DSS image could be fetched"),
+        ("raised", "orbit", "STF 1 AB", "RuntimeError: boom")]
     pool.reset([])
-    return {"failures": found, "after_reset": pool.failures()}
+    assert not pool.failures()
