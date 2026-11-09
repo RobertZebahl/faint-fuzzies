@@ -1,8 +1,9 @@
 """The project lists' own rules (domain/lists.py: build_list): the list tags and the user's own rating of a system are
-kept on its pairs, the orbit list, and a rating counts whatever the instrument of the rated row.
+kept on its pairs, the orbit list, a rating counts whatever the instrument of the rated row, and the stars of an entry
+are the average of each observer's highest rating, rounded up.
 
 SYS1's pair carries tags B and C and the rating 3; SYS2 has a pair with an observation and another without; SYS3 has
-a note only.
+a note only; SYS4's pair has the rating 2.
 """
 import pytest
 
@@ -10,7 +11,7 @@ from faint_fuzzies.domain.catalogue import load_catalogue
 from faint_fuzzies.domain.collection import Collection
 from faint_fuzzies.domain.lists import LISTS, build_list
 from faint_fuzzies.domain.observation import Observation, parse_optic
-from faint_fuzzies.domain.observer import Observer
+from faint_fuzzies.domain.observer import OWN_ID, Observer
 from faint_fuzzies.domain.references import References
 from tests.unit.builders import write_catalogue
 
@@ -29,6 +30,9 @@ OWN = [
     {"GROUP": "SYS3", "TYPE": "**", "CONSTELLATION": "Her"},
     {"NAME": "PAIR5", "GROUP": "SYS3", "TYPE": "**", "CONSTELLATION": "Her", "COMPONENT": "AB",
      "COORDINATES": "170000,+100000", "OBSERVATIONS": [{"DESCRIPTION_DE": "Kopf", "DESCRIPTION_EN": "Header"}]},
+    {"GROUP": "SYS4", "TYPE": "**", "CONSTELLATION": "Sge"},
+    {"NAME": "PAIR6", "GROUP": "SYS4", "TYPE": "**", "CONSTELLATION": "Sge", "COMPONENT": "AB",
+     "COORDINATES": "192400,+165600", "RATING": 2, "OBSERVATIONS": [SEEN]},
     {"NAME": "Messier 99", "TYPE": "GX", "CONSTELLATION": "Com", "COORDINATES": "122318,+144500",
      "OBSERVATIONS": [SEEN]},
 ]
@@ -42,7 +46,8 @@ def own(tmp_path):
 
 
 def _project_lists(catalogue, project, orbit_pairs=(), community=()):
-    """{label of the entry: its sublists (without the right ascension bands) and its stars}. `orbit_pairs` are names
+    """{label of the entry: its sublists (without the right ascension bands), its stars, the rating of each observer
+    and their average}. `orbit_pairs` are names
     of pairs that have an orbit diagram; `community` are (object name, observer id, import format, optic code, rating)
     of observations of other observers."""
     collection = Collection([load_catalogue(catalogue)])
@@ -54,7 +59,8 @@ def _project_lists(catalogue, project, orbit_pairs=(), community=()):
     orbits = frozenset(id(by_name[name]) for name in orbit_pairs)
     result = build_list(LISTS[project], collection, References(collection), None, orbits)
     return {e.unit.label: {"lists": sorted(s for s in e.sublists if not s.startswith("ra-")),
-                           "stars": e.rounded_rating} for e in result.entries}
+                           "stars": e.rounded_rating, "ratings": e.ratings, "average": e.average_rating}
+            for e in result.entries}
 
 
 def test_tags_and_the_users_rating_of_a_pair_count_for_its_system(own):
@@ -83,3 +89,14 @@ def test_a_rating_counts_whatever_the_instrument_of_the_rated_row(own):
                                                                       "N,200,1200", 3)])
     assert lists["Messier 99"]["stars"] == 3
     assert "best-of" in lists["Messier 99"]["lists"]
+
+
+def test_only_the_highest_rating_of_an_observer_counts_and_the_average_is_rounded_up(own):
+    """anna rated SYS4 twice (2 and 1). The user 2, anna 2, carla 3 give 2.33, which counts as 3."""
+    visual = "project-double-stars-visual"
+    sys4 = _project_lists(own, DOUBLE_STARS, community=[("PAIR6", "anna-example", visual, "B,10x50", 2),
+                                                        ("PAIR6", "anna-example", visual, "B,10x50", 1),
+                                                        ("PAIR6", "carla-example", visual, "B,10x50", 3)])["SYS4"]
+    assert sys4["ratings"] == {OWN_ID: 2, "anna-example": 2, "carla-example": 3}
+    assert sys4["average"] == pytest.approx(2.33, abs=0.005)
+    assert sys4["stars"] == 3

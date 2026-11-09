@@ -100,3 +100,17 @@ def orbits_file_text(entries, errors=False, header_lines=7):
             cells[start:start + len(text)] = text
         return "".join(cells)
     return "\n".join([""] * header_lines + [line(*entry) for entry in entries]) + "\n"
+
+
+def converted_sample(converter, catalogue, drop_lines=0):
+    """The Conversion of the sample file of `catalogue` (tests/fixtures/<catalogue>_sample.txt, real lines of the
+    source file), without its first `drop_lines` lines, read the way the convert command reads it."""
+    lines = (FIXTURES / f"{catalogue}_sample.txt").read_text(encoding="utf-8").splitlines()
+    return converter(lines[drop_lines:])
+
+
+def record_of(records, name):
+    """The one converted record whose NAME, or the first of its names, is `name`."""
+    found = [r for r in records if r.get("NAME") == name or r.get("NAME", "").split(", ")[0] == name]
+    assert len(found) == 1, f"expected one record named {name}, found {len(found)}"
+    return found[0]

@@ -79,13 +79,6 @@ The Contributors Of Double Stars Are Its Observers The Global Observer And The U
     Should Be Equal    ${DOUBLE_STARS}[statistics][sketches]    ${2}
     Should Be Equal    ${DOUBLE_STARS}[statistics][photographs]    ${1}
 
-Only The Highest Rating Of An Observer Counts And The Average Is Rounded Up
-    [Documentation]    anna rated 2 Sge twice (2 and 1). the user 2, anna 2, carla 3 give 2.33, which counts as 3.
-    ${entry}=    Entry Of    ${DOUBLE_STARS}    2 Sge
-    Should Be Equal    ${entry}[rating][by_observer]    ${{{'anna-example': 2, 'carla-example': 3, 'owner-example': 2}}}
-    Should Be Equal As Numbers    ${entry}[rating][average]    2.33
-    Should Be Equal As Integers    ${entry}[rating][rounded]    3
-
 The User Rating Comes From The Object
     [Documentation]    Double Stars uses RATING, Deep Sky With Binoculars its own binocular rating.
     ${stf1884}=    Entry Of    ${DOUBLE_STARS}    STF1884
@@ -123,8 +116,10 @@ Telescope Observations Are Not Part Of Deep Sky With Binoculars
     Should Be Equal    ${sources}    ${{['bert-example/visual.csv:1', 'dana-example/global.csv:1']}}
 
 Deep Sky Ratings Include The Global Observer
+    [Documentation]    The list shows the average with two decimals: 3, 2 and 3 give 2.67, which counts as 3.
     ${m13}=    Entry Of    ${DSWB}    Messier 13
     Should Be Equal    ${m13}[rating][by_observer]    ${{{'bert-example': 3, 'owner-example': 2, 'dana-example': 3}}}
+    Should Be Equal As Numbers    ${m13}[rating][average]    2.67
     Should Be Equal As Integers    ${m13}[rating][rounded]    3
     ${m42}=    Entry Of    ${DSWB}    Messier 42
     Should Be Equal    ${m42}[rating][by_observer]    ${{{'bert-example': 1}}}
