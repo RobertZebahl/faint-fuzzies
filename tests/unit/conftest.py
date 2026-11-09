@@ -1,8 +1,6 @@
-from pathlib import Path
-
 import pytest
 
-FIXTURES = Path(__file__).parents[1] / "fixtures"
+from tests.unit.builders import FIXTURES
 
 
 @pytest.fixture
