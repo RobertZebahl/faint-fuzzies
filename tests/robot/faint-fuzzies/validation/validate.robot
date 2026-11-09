@@ -65,17 +65,6 @@ Observation Finding Messages Say What Is Wrong
     Should Be Equal    ${messages}[${{(5, "OPTIC")}}]    unknown telescope design 'X'
     Should Be Equal    ${messages}[${{(5, "BORTLE")}}]    unusual BORTLE value 'ten'
 
-A Grade Must Fit Its Scale's Shape
-    [Documentation]    A range is only ever two adjacent grades that stop at the last "seen" one (5 for any
-    ...    other Object, 2 for a double star); a reversed range is rejected as a likely typo rather than
-    ...    silently reordered; a trailing "*" is not part of the grammar at all, not even on the bare grade 5.
-    ${result}=    Run Validate    ${{['broken_grades.json']}}
-    Should Be Equal As Integers    ${result.rc}    2
-    ${report}=    Parse JSON    ${result.stdout}
-    ${messages}=    Evaluate    [p["message"] for p in $report["findings"]]
-    ${expected}=    Evaluate    ["visibility result '5-4' is a reversed range", "visibility result '1-3' is not a range of two adjacent grades for this scale", "visibility result '5-6' is not a range of two adjacent grades for this scale", "invalid visibility result '5*'", "invalid visibility result '4-5*'", "invalid visibility result '4' for a double star", "visibility result '2-3' is not a range of two adjacent grades for a double star", "invalid visibility result '3*'"]
-    Should Be Equal    ${messages}    ${expected}
-
 Invalid Observations Are Ignored By Filter
     ${result}=    Run Filter    ${EMPTY}    ${{['broken_observations.json']}}    --names-only
     Should Be Equal As Integers    ${result.rc}    0
@@ -112,14 +101,6 @@ An Object With More Than One Header Is Skipped Entirely
     ${data}=    Parse JSON    ${result.stdout}
     Lists Should Be Equal    ${data}[objects]    ${{['OneHeader']}}
     Should Contain    ${result.stderr}    1 broken record(s) skipped
-
-Spaces Inside Observation Values Are Tolerated
-    [Documentation]    The writer removes them, so the loader ignores them: "B, 10x50" is valid.
-    ${result}=    Run Validate    ${{['unformatted.json']}}
-    Should Be Equal As Integers    ${result.rc}    0    msg=${result.stdout}
-    ${report}=    Parse JSON    ${result.stdout}
-    ${errors}=    Evaluate    [p for p in $report["findings"] if p["severity"] == "error"]
-    Should Be Empty    ${errors}
 
 Sessions Are Checked Against Observations
     [Documentation]    The fixture's last two sessions overlap (an error at the later one), which is also why NGC3's
@@ -159,32 +140,6 @@ Session Findings Are Reported
     ${found}=    Evaluate    [(p["catalogue"], p["record"], p["attribute"], p["severity"]) for p in $report["findings"]]
     ${expected}=    Evaluate    [("broken_sessions.json", 1, "DATE", "error"), ("broken_sessions.json", 2, "LOCATION", "error"), ("broken_sessions.json", 3, "COLOUR", "warning"), ("broken_sessions.json", 3, "BORTLE", "warning")]
     Should Be Equal    ${found}    ${expected}
-
-A Bortle Range May Carry A Tendency On Either Side
-    [Documentation]    "6--7" is "6-" to "7": each side of a range may carry its own "+"/"-" independently,
-    ...    not just the value as a whole.
-    ${clean}=    Fixture    bortle_range_sessions.json
-    ${result}=    Run Validate    ${{['objects.json']}}    --sessions    ${clean}
-    ${report}=    Parse JSON    ${result.stdout}
-    Should Be Empty    ${report}[findings]
-
-NELM, SQM And SQM-L Accept Any Positive Number
-    [Documentation]    More digits than the usual one before, or two after, the decimal point are not
-    ...    "unusual" - a real reading is never bound to a fixed width.
-    ${clean}=    Fixture    numeric_conditions_sessions.json
-    ${result}=    Run Validate    ${{['objects.json']}}    --sessions    ${clean}
-    ${report}=    Parse JSON    ${result.stdout}
-    Should Be Empty    ${report}[findings]
-
-An Unusual Seeing Value Is A Warning
-    [Documentation]    SEEING follows the fixed "n/5" (or "a-b/5") shape unlike NELM/SQM/SQM-L, so a value that
-    ...    does not fit it at all is still flagged.
-    ${broken}=    Fixture    invalid_seeing_sessions.json
-    ${result}=    Run Validate    ${{['objects.json']}}    --sessions    ${broken}
-    ${report}=    Parse JSON    ${result.stdout}
-    ${found}=    Evaluate    [(p["attribute"], p["severity"]) for p in $report["findings"]]
-    Should Be Equal    ${found}    ${{[("SEEING", "warning")]}}
-    Should Contain    ${report}[findings][0][message]    unusual SEEING value 'bad'
 
 Unusable Sessions Files Are Usage Errors
     [Template]    Sessions Should Be Rejected
@@ -280,26 +235,6 @@ Two Own-Catalogue Pairs With The Same Name And Component Are Each An Error
     Should Be Equal    ${found}[1][object]    dup1
     ${unaffected}=    Evaluate    [p for p in $report["findings"] if p["object"] == "NODUP1"]
     Should Be Empty    ${unaffected}
-
-A Constellation Must Match The One Computed From The Object's Own Coordinates
-    [Documentation]    Fixture "constellation_check/own.json": GOOD1 is Vega's position (J2000.0) correctly
-    ...    labelled Lyr; WRONG1 is the same position labelled Her instead. NOCONST1 has coordinates but no
-    ...    CONSTELLATION, and NOCOORD1 has a CONSTELLATION but no coordinates - neither is checked (missing
-    ...    coordinates/constellation only get their own check with --data-dir, see catalogues/coordinates.robot
-    ...    and catalogues/constellation.robot). B1950GOOD and B1950WRONG are the same B1950 position (matching
-    ...    Tri, the constellation of M33), correctly and incorrectly labelled, to exercise the B1950/FK4 frame
-    ...    as well as the default J2000.0 one.
-    ${result}=    Run Validate    ${{['constellation_check/own.json']}}
-    Should Be Equal As Integers    ${result.rc}    0    msg=${result.stderr}
-    ${report}=    Parse JSON    ${result.stdout}
-    Length Should Be    ${report}[findings]    2
-    Should Be Equal    ${report}[findings][0][object]    WRONG1
-    Should Be Equal    ${report}[findings][0][attribute]    CONSTELLATION
-    Should Be Equal    ${report}[findings][0][severity]    warning
-    Should Contain    ${report}[findings][0][message]    constellation Her does not match Lyr
-    Should Be Equal    ${report}[findings][1][object]    B1950WRONG
-    Should Contain    ${report}[findings][1][message]    constellation Psc does not match Tri
-
 
 *** Keywords ***
 Sessions Should Be Rejected

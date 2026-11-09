@@ -4,7 +4,14 @@ from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
+from faint_fuzzies.domain.catalogue import load_catalogue
+from faint_fuzzies.domain.collection import Collection
+from faint_fuzzies.domain.filters import FilterSpec, filter_objects
+from faint_fuzzies.domain.names import set_object_name_abbreviations
 from faint_fuzzies.domain.observer import Observer, Scope
+from faint_fuzzies.domain.references import References
 from faint_fuzzies.domain.session import Location, Session
 from faint_fuzzies.loading import load_data_dir, load_static_catalogues
 
@@ -36,6 +43,32 @@ def load_world(data_dir):
     """Everything a data directory loads to, the way the app loads it."""
     root = Path(data_dir)
     return load_data_dir(root, load_static_catalogues(root))
+
+
+def load_catalogues(*paths, sessions=None):
+    """The collection and its references as `filter --catalogue` loads them: the first file is the own catalogue,
+    the only one whose values are checked, and no object name abbreviations apply (a data directory loaded by an
+    earlier test may have set some)."""
+    set_object_name_abbreviations([])
+    collection = Collection([load_catalogue(Path(path), sessions, check_values=index == 0)
+                             for index, path in enumerate(paths)])
+    return collection, References(collection)
+
+
+def filter_matches(spec, *paths, sessions=None):
+    """The Matches of a filter, given as JSON text the way a user writes it, over catalogue files."""
+    collection, references = load_catalogues(*paths, sessions=sessions)
+    return filter_objects(collection, FilterSpec.from_dict(json.loads(spec)), references)
+
+
+def filter_labels(spec, *paths, sessions=None):
+    """The first names of the Objects a filter matches, in catalogue order."""
+    return [match.object.label for match in filter_matches(spec, *paths, sessions=sessions)]
+
+
+def filter_cases(*rows):
+    """Rows of (filter, *expected first names), as pytest cases named after their filter."""
+    return [pytest.param(spec, list(expected), id=spec) for spec, *expected in rows]
 
 
 def find_object(collection, label, catalogue=None):

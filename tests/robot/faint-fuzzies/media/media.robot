@@ -1,24 +1,16 @@
 *** Settings ***
-Documentation       Sketch, Photograph and Image: the has_sketch/has_photograph/has_image
-...                 filter criteria, and (for the own catalogue, which is only checked within a data
-...                 directory) that referenced files exist under observations/owner/ and that a SKETCH
-...                 always states its OPTIC.
+Documentation       Sketch, Photograph and Image of the own catalogue, which is only checked within a data
+...                 directory: that referenced files exist under observations/owner/ and that a SKETCH always
+...                 states its OPTIC. The has_sketch/has_photograph/has_image filter criteria are unit tests
+...                 (tests/unit/domain/test_filters_observations.py).
 Resource            ../../resources/cli.resource
 
 
 *** Variables ***
-${HAS_MEDIA}        has_media.json
 ${OWN_MEDIA_DIR}     ${FIXTURES}${/}own_media_datadir
 
 
 *** Test Cases ***
-Has Sketch Photograph And Image Criteria
-    [Template]    Filter Should Return
-    {"has_sketch": true}          ${HAS_MEDIA}    WithSketch
-    {"has_photograph": true}      ${HAS_MEDIA}    WithPhotograph
-    {"has_image": true}           ${HAS_MEDIA}    WithImage
-    {"has_photograph": false}     ${HAS_MEDIA}    WithSketch    WithImage    Plain
-
 Missing Own Media Files Are Reported
     [Documentation]    SKETCH, PHOTOGRAPH and IMAGE on the own catalogue's observations are checked
     ...    against observations/owner/sketches, photographs and images - only within a data directory,
