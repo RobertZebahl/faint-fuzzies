@@ -2,8 +2,8 @@
 Documentation       The filter criteria about findings and publication: `finding` (the level of an Object, "error" or
 ...                 "warning", the worst of its Findings and its Observations' - so an Object is at one level only),
 ...                 `header_only` (a Header but not published) and `publish_without_observation` (the mark on the record).
-...                 Fixtures "problems_datadir" and "publication".
-Library             ../../libraries/FindingChecks.py
+...                 Fixtures "problems_datadir" and "publication". Which Invalid Objects a filter shows is a unit test
+...                 (tests/unit/domain/test_invalid_objects.py).
 Resource            ../../resources/cli.resource
 
 
@@ -40,24 +40,6 @@ The Level Needs A Data Directory
     ${result}=    Run CLI    filter    --catalogue    ${PUBLICATION}    --filter    {"finding": "error"}
     Should Be Equal As Integers    ${result.rc}    1
     Should Contain    ${result.stderr}    needs a data directory
-
-The Invalid Objects Are At The Error Level
-    ${labels}=    Invalid Matches    ${DATADIR}    {"finding": "error"}
-    Should Be Equal    ${labels}    ${{['Unknown Type', 'objects.json #3', 'objects.json #4']}}
-    ${labels}=    Invalid Matches    ${DATADIR}    {"finding": "warning"}
-    Should Be Empty    ${labels}
-
-The Invalid Objects Meet The Criteria About The Object
-    ${labels}=    Invalid Matches    ${DATADIR}    {"name": "Unknown Type"}
-    Should Be Equal    ${labels}    ${{['Unknown Type']}}
-    ${labels}=    Invalid Matches    ${DATADIR}    {"type": "Gx"}
-    Should Be Equal    ${labels}    ${{['objects.json #3']}}
-
-The Invalid Objects Have No Observations
-    ${labels}=    Invalid Matches    ${DATADIR}    {"public": true}
-    Should Be Empty    ${labels}
-    ${labels}=    Invalid Matches    ${DATADIR}    {"seen": "seen"}
-    Should Be Empty    ${labels}
 
 Header Only Is A Header Without Anything Published
     [Documentation]    Marked Objects are published, so they are not header only, and neither is an Object with a valid

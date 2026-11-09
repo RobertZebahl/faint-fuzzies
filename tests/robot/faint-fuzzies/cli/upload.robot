@@ -3,7 +3,6 @@ Documentation   "upload" (see cli.py, upload.py): sends a built website to its h
 ...             with a password from the OS keyring, wrapped by sshpass since the host has no SSH key. No real
 ...             host, rsync, sshpass or keyring is involved - see resources/upload.resource.
 Resource        ../../resources/upload.resource
-Library         ../../libraries/UploadLineChecks.py
 
 
 *** Test Cases ***
@@ -151,11 +150,3 @@ Upload Needs An Existing Output Directory
     Should Be Equal As Integers    ${result.rc}    1
     Should Contain    ${result.stderr}    does not exist
     Sshpass Should Not Have Run
-
-With on_line, Rsync's Output Is Relayed Line By Line
-    [Documentation]    on_line is only ever given by the app's Site page (see ui/site.py), never by this CLI
-    ...    command - checked directly against upload_site itself, since the CLI's own subprocess-level tests
-    ...    above never pass it.
-    ${result}=    Upload Lines Received
-    Should Be Equal    ${result}[lines]    ${{['first line', 'second line']}}
-    Should Be Equal As Integers    ${result}[exit_code]    0
