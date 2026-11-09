@@ -146,7 +146,8 @@ def test_the_errors_and_the_unit_of_the_axis_are_kept():
 
 
 def test_a_diagram_is_written_as_a_picture(tmp_path):
-    width, height = Image.open(_diagram(tmp_path)).size
+    with Image.open(_diagram(tmp_path)) as image:
+        width, height = image.size
     assert width > 900
     assert height > 900
 
@@ -165,8 +166,10 @@ def test_the_table_steps_fit_the_period(elements, step):
 
 
 def test_todays_position_is_drawn_in_red(tmp_path):
-    pixels = Image.open(_diagram(tmp_path)).convert("RGB").getdata()
-    assert sum(1 for r, g, b in pixels if r > 200 and g < 80 and b < 80) > 50
+    with Image.open(_diagram(tmp_path)) as image:
+        rgb = image.convert("RGB")
+    colors = rgb.getcolors(rgb.width * rgb.height)
+    assert sum(count for count, (r, g, b) in colors if r > 200 and g < 80 and b < 80) > 50
 
 
 @pytest.mark.parametrize(("elements", "decimals"), [(FAST, 3), (YEARLY, 2)])

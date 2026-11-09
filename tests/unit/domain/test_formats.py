@@ -6,15 +6,13 @@ is not a double star and private observations out of the order of their date are
 with it, and the ones ending in "Ok" are right."""
 import pytest
 
-from faint_fuzzies.domain.catalogue import load_catalogue
-from faint_fuzzies.domain.names import set_object_name_abbreviations
-from tests.unit.builders import FIXTURES
+from tests.unit.builders import FIXTURES, load_catalogues
 
 
 @pytest.fixture(scope="module")
 def findings():
-    set_object_name_abbreviations([])
-    return load_catalogue(FIXTURES / "values" / "own.json").findings
+    collection, _references = load_catalogues(FIXTURES / "values" / "own.json")
+    return collection.catalogues[0].findings
 
 
 def test_every_wrong_value_is_an_error_of_its_attribute(findings):

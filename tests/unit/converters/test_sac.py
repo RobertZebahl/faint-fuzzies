@@ -10,10 +10,6 @@ def conversion():
     return converted_sample(convert_sac, "sac")
 
 
-def _record(conversion, name):
-    return record_of(conversion.records, name)
-
-
 def test_sac_result_is_in_natural_name_order(conversion):
     assert [r["NAME"].split(", ")[0] for r in conversion.records] == [
         "3C48", "IC2177", "NGC5", "NGC9", "NGC10", "NGC44", "NGC206", "NGC2973", "PK130-11.1"]
@@ -26,7 +22,7 @@ def test_sac_result_is_in_natural_name_order(conversion):
 ])
 def test_sac_right_ascension_counts_fractions_of_a_minute(conversion, name, coordinates):
     """"01 37.6" is 37 minutes and 0.6 minutes, which are 36 seconds."""
-    assert _record(conversion, name)["COORDINATES"] == coordinates
+    assert record_of(conversion.records, name)["COORDINATES"] == coordinates
 
 
 @pytest.mark.parametrize(("name", "types"), [
@@ -36,11 +32,11 @@ def test_sac_right_ascension_counts_fractions_of_a_minute(conversion, name, coor
     ("NGC5", "Gx"),
 ])
 def test_sac_types_are_mapped(conversion, name, types):
-    assert _record(conversion, name)["TYPE"] == types
+    assert record_of(conversion.records, name)["TYPE"] == types
 
 
 def test_sac_type_without_a_mapping_leaves_out_the_attribute(conversion):
-    assert "TYPE" not in _record(conversion, "NGC2973")
+    assert "TYPE" not in record_of(conversion.records, "NGC2973")
 
 
 @pytest.mark.parametrize(("name", "size"), [
@@ -50,16 +46,16 @@ def test_sac_type_without_a_mapping_leaves_out_the_attribute(conversion):
 ])
 def test_sac_sizes_are_arcminutes(conversion, name, size):
     """"6 s" is 0.1 arcminutes; a missing measurement stays empty."""
-    assert _record(conversion, name)["SIZE"] == size
+    assert record_of(conversion.records, name)["SIZE"] == size
 
 
 def test_sac_magnitude_99_9_means_unknown(conversion):
-    assert "MAGNITUDE" not in _record(conversion, "NGC44")
-    assert _record(conversion, "3C48")["MAGNITUDE"] == "v16.5"
+    assert "MAGNITUDE" not in record_of(conversion.records, "NGC44")
+    assert record_of(conversion.records, "3C48")["MAGNITUDE"] == "v16.5"
 
 
 def test_sac_names_include_the_other_names_without_spaces(conversion):
-    assert _record(conversion, "IC2177")["NAME"] == "IC2177, Gum2, Sh2-296, RCW1"
+    assert record_of(conversion.records, "IC2177")["NAME"] == "IC2177, Gum2, Sh2-296, RCW1"
 
 
 @pytest.mark.parametrize(("name", "constellation"), [
@@ -70,4 +66,4 @@ def test_sac_names_include_the_other_names_without_spaces(conversion):
 def test_sac_constellations_are_normalised_to_mixed_case(conversion, name, constellation):
     """The source writes them upper case ("TRI", "AND", "ANT"); every converter normalises through the one mapping in
     converters.common, whatever case the source used."""
-    assert _record(conversion, name)["CONSTELLATION"] == constellation
+    assert record_of(conversion.records, name)["CONSTELLATION"] == constellation

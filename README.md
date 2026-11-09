@@ -1365,15 +1365,35 @@ the app's Site page to show it live) - never captured or reinterpreted either wa
 The tests come in two layers, sharing the fixtures in `tests/fixtures/`:
 
 * **Unit tests** (`tests/unit/`, [pytest](https://docs.pytest.org/)) call the Python code directly. Their folders
-  follow `src/faint_fuzzies` (`tests/unit/domain/` for `domain/`, and so on), and a test builds its input inline
-  unless it needs a whole data directory.
+  follow `src/faint_fuzzies` (`tests/unit/domain/` for `domain/`, `tests/unit/converters/` for `converters/`, and so
+  on). A test builds its input inline, unless it needs a whole data directory or real lines of a source file (the
+  converters' `*_sample.txt`), which it takes from `tests/fixtures/`.
 * **Robot Framework** (`tests/robot/`) runs the installed command line tool as a black box against small JSON
-  fixtures in the real catalogue format.
+  fixtures in the real catalogue format. Its two keyword libraries (`tests/robot/libraries/`) only prepare fixtures
+  and look at written files: `OrbitChecks` writes an orbit file, `SiteBuildChecks` makes images and thumbnails and
+  reads links and image sizes.
 
 ```
 uv run pytest
 uv run robot --outputdir build/robot tests/robot/faint-fuzzies
 ```
+
+`pytest` alone runs every unit test (`testpaths` in `pyproject.toml`); a folder, a file or `-k` runs part of them,
+for example `uv run pytest tests/unit/domain -k references`.
+
+The unit tests share their builders in `tests/unit/builders.py`: writing a catalogue file, hand-made sessions,
+loading catalogues or a whole data directory the way the command line does, running a filter given as JSON text,
+converting a sample file, and the text of a minimal orbit file. The object name abbreviations are global, so a test
+that loads catalogue files gets none (`load_catalogues` resets them, as `filter --catalogue` does) and one that loads a
+data directory gets that directory's own - whatever an earlier test loaded.
+
+How a unit test is written:
+
+* It is named after the rule it checks, in snake_case (`test_ugc_keeps_the_larger_of_two_size_measurements`).
+* Rows of the same check are `pytest.mark.parametrize` cases, each with a readable id (the filter, the name).
+* A docstring only where it explains a why the name and the code cannot; each module's docstring says what the
+  module covers and describes its fixture.
+* No markers: every unit test runs in every `pytest` run.
 
 Where a new test goes:
 
@@ -1397,11 +1417,10 @@ robot --outputdir build/robot --include real-data --variable REAL_OBJECTS:path/t
 ## Code coverage
 
 [coverage.py](https://coverage.readthedocs.io/) is a dev dependency (see [Install](#install)). The unit tests run in the
-`pytest` process itself. The Robot tests exercise the code two ways: Robot's own Python libraries
-(`tests/robot/libraries/`) call it directly, in the same process `robot` runs in, but most `.robot` files instead run
-the installed `faint-fuzzies` command as a real subprocess (see `resources/cli.resource`'s `Run CLI`). Measuring only
-the first would leave `cli.py`, and anything only reached through the command line, looking untested - so a subprocess
-needs to measure itself too. `tests/robot/coverage/sitecustomize.py` makes that happen automatically whenever
+`pytest` process itself. The Robot tests run the installed `faint-fuzzies` command as a real subprocess (see
+`resources/cli.resource`'s `Run CLI`); only `SiteBuildChecks`' thumbnail keyword calls the code directly, in the
+process `robot` runs in. Measuring only that process would leave `cli.py`, and anything only reached through the
+command line, looking untested - so a subprocess needs to measure itself too. `tests/robot/coverage/sitecustomize.py` makes that happen automatically whenever
 `COVERAGE_PROCESS_START` is set, the way [coverage's own subprocess
 support](https://coverage.readthedocs.io/en/latest/subprocess.html) expects; it does nothing otherwise, so it is
 harmless to leave on `PYTHONPATH` at any other time.
