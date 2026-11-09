@@ -14,8 +14,8 @@ Resource            ../../resources/cli.resource
 
 
 *** Variables ***
-${DATADIR}          ${CURDIR}${/}..${/}..${/}fixtures${/}problems_datadir
-${INFO_LINK_DATADIR}    ${CURDIR}${/}..${/}..${/}fixtures${/}info_link_datadir
+${DATADIR}          ${CURDIR}${/}..${/}..${/}..${/}fixtures${/}problems_datadir
+${INFO_LINK_DATADIR}    ${CURDIR}${/}..${/}..${/}..${/}fixtures${/}info_link_datadir
 
 
 *** Test Cases ***

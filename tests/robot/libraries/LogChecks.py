@@ -41,7 +41,7 @@ def object_link_opens_a_new_tab():
 
 
 def failure_summary():
-    when = datetime.datetime(2026, 9, 26, 12, 30, 5)
+    when = datetime.datetime(2026, 9, 26, 12, 30, 5)  # noqa: DTZ001  # TaskFailure.time is naive (datetime.now)
     rows = failure_rows([TaskFailure("a.jpg", "dss", "M 13", "no image", when),
                          TaskFailure("b.jpg", "orbit", "", "boom", when)])
     return [(r["time"], r["kind"], r["what"], r["message"]) for r in rows]

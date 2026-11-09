@@ -8,7 +8,7 @@ Library             ../../libraries/ProjectRuleChecks.py
 
 
 *** Variables ***
-${OWN}              ${CURDIR}${/}..${/}..${/}fixtures${/}project_rules${/}own.json
+${OWN}              ${CURDIR}${/}..${/}..${/}..${/}fixtures${/}project_rules${/}own.json
 ${DS}               project-double-stars
 ${DSWB}             project-deep-sky-with-binoculars
 

@@ -6,7 +6,7 @@ Library     Collections
 
 *** Variables ***
 ${CLI}          faint-fuzzies
-${FIXTURES}     ${CURDIR}${/}..${/}fixtures
+${FIXTURES}     ${CURDIR}${/}..${/}..${/}fixtures
 
 
 *** Keywords ***

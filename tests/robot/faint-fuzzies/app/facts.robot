@@ -6,9 +6,9 @@ Library             ../../libraries/FactsChecks.py
 
 
 *** Variables ***
-${FACTS}            ${CURDIR}${/}..${/}..${/}fixtures${/}facts.json
-${LISTS}            ${CURDIR}${/}..${/}..${/}fixtures${/}lists
-${PROBLEMS}         ${CURDIR}${/}..${/}..${/}fixtures${/}problems_datadir${/}observations${/}owner${/}objects.json
+${FACTS}            ${CURDIR}${/}..${/}..${/}..${/}fixtures${/}facts.json
+${LISTS}            ${CURDIR}${/}..${/}..${/}..${/}fixtures${/}lists
+${PROBLEMS}         ${CURDIR}${/}..${/}..${/}..${/}fixtures${/}problems_datadir${/}observations${/}owner${/}objects.json
 
 
 *** Test Cases ***

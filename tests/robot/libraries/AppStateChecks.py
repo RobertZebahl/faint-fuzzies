@@ -10,7 +10,7 @@ from faint_fuzzies.domain import dss, orbits
 from faint_fuzzies.ui.state import AppState
 
 sys.path.insert(0, str(Path(__file__).parent))
-from OrbitChecks import orbits_file_text  # noqa: E402
+from OrbitChecks import orbits_file_text
 
 
 def background_work_of_state(fixture, fetch_dss, generate_orbits):

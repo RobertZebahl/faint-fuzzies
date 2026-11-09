@@ -4,8 +4,13 @@ from pathlib import Path
 from faint_fuzzies.domain.catalogue import load_catalogue
 from faint_fuzzies.domain.collection import Collection
 from faint_fuzzies.domain.names import component_of
-from faint_fuzzies.domain.orbits import OrbitalElements
-from faint_fuzzies.domain.orbits import OrbitalElements, _orbit_geometry, ephemeris_step, generate_orbit_diagram, parse_orbits
+from faint_fuzzies.domain.orbits import (
+    OrbitalElements,
+    _orbit_geometry,
+    ephemeris_step,
+    generate_orbit_diagram,
+    parse_orbits,
+)
 from faint_fuzzies.media_pool import matched_orbits, orbit_cache_path, orbit_stem
 
 DATA = Path("data")
@@ -23,7 +28,6 @@ def solutions_by_pair(wds_catalogue, orbit_entries):
     plottable solution."""
     collection = Collection([load_catalogue(Path(wds_catalogue))])
     elements = [_elements(wds_id, designation, unit=unit) for wds_id, designation, unit in orbit_entries]
-    labels = {id(obj): obj.label for obj in collection.objects}
     keys = {id(obj): f"{obj.label} {component_of(obj)}" for obj in collection.objects}
     found = {}
     for object_id, solutions in matched_orbits(collection, elements).items():
@@ -54,6 +58,7 @@ def orbit_details(wds_id, designation, unit):
 def draw_orbit(wds_id, designation, unit):
     """Draws the diagram of a line into a temporary file, for the year 2025; returns its size in pixels."""
     import tempfile
+
     from PIL import Image
     (elements,) = parse_orbits(orbits_file_text([(wds_id, designation, unit)], errors=True))
     destination = Path(tempfile.mkdtemp()) / "orbit.jpg"
@@ -97,6 +102,7 @@ def step_of(period, semi_major_axis, eccentricity, inclination, node, periastron
 def red_pixels(wds_id, designation, unit):
     """How many clearly red pixels the diagram of a line has: today's position and its year are drawn in red."""
     import tempfile
+
     from PIL import Image
     (elements,) = parse_orbits(orbits_file_text([(wds_id, designation, unit)], errors=True))
     destination = Path(tempfile.mkdtemp()) / "orbit.jpg"
@@ -113,6 +119,7 @@ def table_rows(period, semi_major_axis, eccentricity, inclination, node, periast
                                node=float(node), periastron=float(periastron), eccentricity=float(eccentricity),
                                periastron_longitude=float(omega), grade=2)
     import tempfile
+
     from matplotlib.axes import Axes
     real_table = Axes.table
 
