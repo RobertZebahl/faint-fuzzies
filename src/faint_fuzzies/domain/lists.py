@@ -24,7 +24,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from faint_fuzzies.domain.collection import Collection
-from faint_fuzzies.domain.model import COORDINATES_FORMAT, Object, ObjectAttribute
+from faint_fuzzies.domain.model import COORDINATES_FORMAT, Object, ObjectAttribute, catalogue_key
 from faint_fuzzies.domain.model import ObjectType as T
 from faint_fuzzies.domain.names import PAIR, is_star, kind_of
 from faint_fuzzies.domain.observation import FoundObservation, Observation, OpticType, is_header
@@ -296,7 +296,7 @@ def _is_red_star(obj: Object) -> bool:
 
 
 def _is_herschel(obj: Object) -> bool:
-    return Path(obj.catalogue).stem.casefold() == "herschel"
+    return catalogue_key(obj.catalogue) == "herschel"
 
 
 def _herschel_400(entry: Entry) -> bool:

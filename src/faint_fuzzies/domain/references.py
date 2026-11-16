@@ -8,10 +8,9 @@ one catalogue, a Bayer name and the WDS id in another). References never exist w
 catalogue and are not chained.
 """
 from collections import defaultdict
-from pathlib import Path
 
 from faint_fuzzies.domain.collection import Collection
-from faint_fuzzies.domain.model import Object, ObjectAttribute, ObjectType
+from faint_fuzzies.domain.model import Object, ObjectAttribute, ObjectType, catalogue_key
 from faint_fuzzies.domain.names import GROUP, PAIR, component_of, kind_of, names_of
 
 
@@ -84,10 +83,10 @@ class References:
         for name in obj.names:
             matches = {id(other): other for other in self._collection.names.lookup(PAIR, name)
                       if other.rank != obj.rank and component_of(other) == component}
-            wds_matches = {i: o for i, o in matches.items() if Path(o.catalogue).stem.casefold() == "wds"}
+            wds_matches = {i: o for i, o in matches.items() if catalogue_key(o.catalogue) == "wds"}
             if wds_matches:
                 wds_per_name.append(wds_matches)
-            found.update({i: o for i, o in matches.items() if Path(o.catalogue).stem.casefold() != "wds"})
+            found.update({i: o for i, o in matches.items() if catalogue_key(o.catalogue) != "wds"})
         if wds_per_name:
             common_ids = set(wds_per_name[0])
             for matches in wds_per_name[1:]:
@@ -189,6 +188,6 @@ def wds_reference(obj: Object, references: References | None) -> Object | None:
             or obj.record.get(ObjectAttribute.DISABLE_WDS)):
         return None
     for reference in references.of(obj):
-        if Path(reference.catalogue).stem.casefold() == "wds":
+        if catalogue_key(reference.catalogue) == "wds":
             return reference
     return None

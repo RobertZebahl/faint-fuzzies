@@ -351,9 +351,9 @@ def duplicate_name_findings(collection: Collection) -> list[Finding]:
         for obj in catalogue.objects:
             kind = kind_of(obj)
             attribute = ObjectAttribute.GROUP if obj.is_group else ObjectAttribute.NAME
-            written = split_names(str(obj.record.get(attribute, "")))
-            for name in dict.fromkeys(full_key(n) for n in written):
-                found[(kind, name, component_key(component_of(obj)) if kind == PAIR else None)].append((attribute, obj))
+            component = component_key(component_of(obj)) if kind == PAIR else None
+            for name in dict.fromkeys(full_key(n) for n in split_names(str(obj.record.get(attribute, "")))):
+                found[(kind, name, component)].append((attribute, obj))
         for (_kind, _name, _component), holders in found.items():
             if len(holders) < 2:
                 continue

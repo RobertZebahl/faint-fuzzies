@@ -6,6 +6,7 @@ Attributes are written in canonical order, and unknown attributes are kept after
 ones. Loading a file and rendering it again must give the identical text.
 """
 import json
+from json.encoder import encode_basestring
 from typing import Any
 
 from faint_fuzzies.domain.formats import normalize_magnitude
@@ -90,6 +91,9 @@ def _render_session(record: Any) -> str:
     return ("{" + ", ".join(parts) + "\n" + " " * 4 + "}").replace(" \n", "\n")
 
 
+_OBJECT_ATTRIBUTE_SET = frozenset(OBJECT_ATTRIBUTES)  # for membership tests, which a tuple makes linear
+
+
 def _ordered_keys(data: dict[str, Any], known: tuple[str, ...]) -> list[str]:
     """`data`'s keys in canonical order: the known attributes first, in `known`'s order, then the rest in
     the order `data` already has them.
@@ -98,11 +102,12 @@ def _ordered_keys(data: dict[str, Any], known: tuple[str, ...]) -> list[str]:
     :param known: the canonical order of its known attributes
     :returns: the ordered keys
     """
-    return [k for k in known if k in data] + [k for k in data if k not in known]
+    known_set = _OBJECT_ATTRIBUTE_SET if known is OBJECT_ATTRIBUTES else known
+    return [k for k in known if k in data] + [k for k in data if k not in known_set]
 
 
 def _string(value: str) -> str:
-    return json.dumps(value, ensure_ascii=False)
+    return encode_basestring(value)  # what json.dumps(value, ensure_ascii=False) does for a str, without its overhead
 
 
 def _render_record(record: Any) -> str:
@@ -117,7 +122,7 @@ def _render_record(record: Any) -> str:
     parts = []
     for key in _ordered_keys(record, OBJECT_ATTRIBUTES):
         value = record[key]
-        if key not in OBJECT_ATTRIBUTES:
+        if key not in _OBJECT_ATTRIBUTE_SET:
             parts.append(f'"{key}": {json.dumps(value, ensure_ascii=False)}')
         elif isinstance(value, bool) or value:
             parts.append(_render_attribute(key, value))

@@ -35,7 +35,8 @@ import re
 import shutil
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from html.parser import HTMLParser
+from dataclasses import dataclass, field
+from html import unescape
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote
@@ -163,37 +164,51 @@ class MediaSources:
         return None
 
 
-class _LinkScanner(HTMLParser):
-    """Collects one page's own `<a href>` targets and its `id`/`name` anchors.
+_RAW_TEXT = re.compile(r"(<(script|style)\b(?:[^>\"']|\"[^\"]*\"|'[^']*')*>).*?(?=</\2)", re.DOTALL | re.IGNORECASE)
+_START_TAG = re.compile(r"<([a-zA-Z][^\t\n\r\f />\x00]*)((?:[^>\"']|\"[^\"]*\"|'[^']*')*)>")
+_TAG_ATTRIBUTE = re.compile(r"""((?<=['"\s/])[^\s/>][^\s/=>]*)(\s*=+\s*('[^']*'|"[^"]*"|(?!['"])[^>\s]*))?""")
+
+
+@dataclass
+class _ScannedLinks:
+    """One page's own `<a href>` targets and its `id`/`name` anchors.
 
     :ivar hrefs: every `<a href="...">` target, in document order
     :ivar anchors: every `id` or `name` attribute value found on any element
     """
 
-    def __init__(self) -> None:
-        super().__init__()
-        self.hrefs: list[str] = []
-        self.anchors: set[str] = set()
-
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        values = dict(attrs)
-        if tag == "a" and (href := values.get("href")):
-            self.hrefs.append(href)
-        if anchor := (values.get("id") or values.get("name")):
-            self.anchors.add(anchor)
+    hrefs: list[str] = field(default_factory=list)
+    anchors: set[str] = field(default_factory=set)
 
 
-def _scan_links(document: str) -> _LinkScanner:
+def _scan_links(document: str) -> _ScannedLinks:
     """Parses `document` for its own `<a href>` targets and `id`/`name` anchors. A PHP page's `<?php ... ?>`
     delimiters are stripped first, so whatever HTML a PHP `echo` writes (a project page's list-filtered
     row, for example) is still seen as ordinary markup, not swallowed as one opaque processing instruction.
 
+    Reads start tags the way `html.parser.HTMLParser` does (comments and the content of `<script>`/`<style>`
+    skipped, tag and attribute names case-insensitive, entities in values resolved, the last of a repeated
+    attribute winning) but with a few regular expressions instead, several times faster on the site's large pages.
+
     :param document: a rendered page's HTML/PHP text
-    :returns: the scanner, holding `.hrefs` and `.anchors`
+    :returns: the page's `.hrefs` and `.anchors`
     """
-    scanner = _LinkScanner()
-    scanner.feed(_PHP_TAG.sub(" ", document))
-    return scanner
+    scanned = _ScannedLinks()
+    text = _RAW_TEXT.sub(r"\1", _COMMENT.sub("", _PHP_TAG.sub(" ", document)))
+    for match in _START_TAG.finditer(text):
+        tag, rest = match.group(1).lower(), match.group(2)
+        if tag != "a" and "id" not in rest.lower() and "name" not in rest.lower():
+            continue  # neither a link nor a possible anchor
+        values: dict[str, str | None] = {}
+        for name, assignment, value in _TAG_ATTRIBUTE.findall(rest):
+            if value[:1] in ("'", '"'):
+                value = value[1:-1]
+            values[name.lower()] = unescape(value) if assignment else None
+        if tag == "a" and (href := values.get("href")):
+            scanned.hrefs.append(href)
+        if anchor := (values.get("id") or values.get("name")):
+            scanned.anchors.add(anchor)
+    return scanned
 
 
 def _resolve_href(source: str, path: str) -> str | None:

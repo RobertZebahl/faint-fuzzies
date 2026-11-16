@@ -5,6 +5,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from enum import Enum, StrEnum
+from functools import cache
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -108,6 +110,17 @@ class ObservationAttribute(StrEnum):
 # ordered collection of all valid keys, not the Enum type itself.
 OBJECT_ATTRIBUTES = tuple(ObjectAttribute)
 OBSERVATION_ATTRIBUTES = tuple(ObservationAttribute)
+
+
+@cache
+def catalogue_key(catalogue: str) -> str:
+    """A catalogue's file name as the name it is known by (`WDS.json` -> `wds`): its stem, without regard to case.
+    Cached, since it is asked for again and again in loops over every Object.
+
+    :param catalogue: the catalogue's file name
+    :returns: its key
+    """
+    return Path(catalogue).stem.casefold()
 
 
 def split_names(value: str) -> tuple[str, ...]:

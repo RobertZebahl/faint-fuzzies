@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from faint_fuzzies.domain.collection import Collection
+from faint_fuzzies.domain.model import catalogue_key
 from faint_fuzzies.domain.names import PAIR, component_of
 
 # A data line's first 18 characters are its RA,Dec position, fixed width: 6 digits, ".", two digits or
@@ -143,7 +144,7 @@ def match_pairs(collection: Collection, elements: list[OrbitalElements]) -> dict
     matched: dict[int, list[OrbitalElements]] = {}
     for entry in elements:
         found = {id(o): o for o in collection.names.lookup(PAIR, entry.wds_id)
-                if Path(o.catalogue).stem.casefold() == "wds"}
+                if catalogue_key(o.catalogue) == "wds"}
         candidates = list(found.values())  # lookup() may repeat one Object across several name forms
         if len(candidates) == 1:
             matched.setdefault(id(candidates[0]), []).append(entry)
