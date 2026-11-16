@@ -1362,15 +1362,49 @@ the app's Site page to show it live) - never captured or reinterpreted either wa
 
 ## Tests
 
-Robot Framework runs the installed command line tool as a black box against small JSON
-fixtures in the real catalogue format:
+The tests come in two layers, sharing the fixtures in `tests/fixtures/`:
+
+* **Unit tests** (`tests/unit/`, [pytest](https://docs.pytest.org/)) call the Python code directly. Their folders
+  follow `src/faint_fuzzies` (`tests/unit/domain/` for `domain/`, `tests/unit/converters/` for `converters/`, and so
+  on). A test builds its input inline, unless it needs a whole data directory or real lines of a source file (the
+  converters' `*_sample.txt`), which it takes from `tests/fixtures/`.
+* **Robot Framework** (`tests/robot/`) runs the installed command line tool as a black box against small JSON
+  fixtures in the real catalogue format. Its two keyword libraries (`tests/robot/libraries/`) only prepare fixtures
+  and look at written files: `OrbitChecks` writes an orbit file, `SiteBuildChecks` makes images and thumbnails and
+  reads links and image sizes.
 
 ```
+uv run pytest
 uv run robot --outputdir build/robot tests/robot/faint-fuzzies
 ```
 
-`tests/robot/fixtures/canonical.json` consists of records copied verbatim from a real
-catalogue. Two tests are opt-in (`--include real-data`, each needing its own `--variable`), since they need a
+`pytest` alone runs every unit test (`testpaths` in `pyproject.toml`); a folder, a file or `-k` runs part of them,
+for example `uv run pytest tests/unit/domain -k references`.
+
+The unit tests share their builders in `tests/unit/builders.py`: writing a catalogue file, hand-made sessions,
+loading catalogues or a whole data directory the way the command line does, running a filter given as JSON text,
+converting a sample file, and the text of a minimal orbit file. The object name abbreviations are global, so a test
+that loads catalogue files gets none (`load_catalogues` resets them, as `filter --catalogue` does) and one that loads a
+data directory gets that directory's own - whatever an earlier test loaded.
+
+How a unit test is written:
+
+* It is named after the rule it checks, in snake_case (`test_ugc_keeps_the_larger_of_two_size_measurements`).
+* Rows of the same check are `pytest.mark.parametrize` cases, each with a readable id (the filter, the name).
+* A docstring only where it explains a why the name and the code cannot; each module's docstring says what the
+  module covers and describes its fixture.
+* No markers: every unit test runs in every `pytest` run.
+
+Where a new test goes:
+
+* **A unit test** when it calls Python code directly rather than the command line, when it checks one rule
+  (parsing, matching, a filter criterion, a value check) over many small inputs, or when it needs fakes or stubs
+  (a stub collection, a fake cgroup, a stubbed fetcher).
+* **Robot** when it checks what a user of the command line sees: exit codes, usage errors, the report's shape,
+  files written or deleted, a whole site build, an upload.
+
+`tests/fixtures/canonical.json` consists of records copied verbatim from a real
+catalogue. Two Robot tests are opt-in (`--include real-data`, each needing its own `--variable`), since they need a
 real file this repository does not ship:
 
 ```
@@ -1382,16 +1416,17 @@ robot --outputdir build/robot --include real-data --variable REAL_OBJECTS:path/t
 
 ## Code coverage
 
-[coverage.py](https://coverage.readthedocs.io/) is a dev dependency (see [Install](#install)). The tests
-exercise the code two ways: Robot's own Python libraries (`tests/robot/libraries/`) call it directly, in the
-same process `robot` runs in, but most `.robot` files instead run the installed `faint-fuzzies` command as a
-real subprocess (see `resources/cli.resource`'s `Run CLI`). Measuring only the first would leave `cli.py`, and
-anything only reached through the command line, looking untested - so a subprocess needs to measure itself
-too. `tests/robot/coverage/sitecustomize.py` makes that happen automatically whenever `COVERAGE_PROCESS_START`
-is set, the way [coverage's own subprocess support](https://coverage.readthedocs.io/en/latest/subprocess.html)
-expects; it does nothing otherwise, so it is harmless to leave on `PYTHONPATH` at any other time.
+[coverage.py](https://coverage.readthedocs.io/) is a dev dependency (see [Install](#install)). The unit tests run in the
+`pytest` process itself. The Robot tests run the installed `faint-fuzzies` command as a real subprocess (see
+`resources/cli.resource`'s `Run CLI`); only `SiteBuildChecks`' thumbnail keyword calls the code directly, in the
+process `robot` runs in. Measuring only that process would leave `cli.py`, and anything only reached through the
+command line, looking untested - so a subprocess needs to measure itself too. `tests/robot/coverage/sitecustomize.py` makes that happen automatically whenever
+`COVERAGE_PROCESS_START` is set, the way [coverage's own subprocess
+support](https://coverage.readthedocs.io/en/latest/subprocess.html) expects; it does nothing otherwise, so it is
+harmless to leave on `PYTHONPATH` at any other time.
 
 ```
+uv run coverage run -m pytest
 PYTHONPATH=tests/robot/coverage COVERAGE_PROCESS_START=pyproject.toml \
   uv run coverage run -m robot --outputdir build/robot tests/robot/faint-fuzzies
 uv run coverage combine
@@ -1399,15 +1434,14 @@ uv run coverage report      # a summary in the terminal
 uv run coverage html        # a browsable report in build/coverage/html/index.html
 ```
 
-`coverage combine` merges the main process's own measurements with every subprocess's (one `.coverage.*` file
-each - see `parallel = true` under `[tool.coverage.run]` below) into a single database before either report is
-produced. Both the raw `.coverage*` files and the HTML report are written under `build/coverage/`, alongside
-Robot's own output under `build/robot`, rather than the project root (`data_file`/`[tool.coverage.html]`'s
-`directory`, both below) - like `build/robot` above, nothing under `build/` needs its own `.gitignore` entry.
-`pyproject.toml`'s
+`coverage combine` merges the `pytest` and `robot` processes' own measurements with every subprocess's (one
+`.coverage.*` file each - see `parallel = true` under `[tool.coverage.run]` below) into a single database before either
+report is produced. Both the raw `.coverage*` files and the HTML report are written under `build/coverage/`, alongside
+Robot's own output under `build/robot`, rather than the project root (`data_file`/`[tool.coverage.html]`'s `directory`,
+both below) - like `build/robot` above, nothing under `build/` needs its own `.gitignore` entry. `pyproject.toml`'s
 `[tool.coverage.run]`/`[tool.coverage.report]` tables restrict what counts as the project's own code
-(`src/faint_fuzzies`, so Robot's own libraries are never measured) and turn on `show_missing`, which lists the
-uncovered line numbers of each file in `coverage report`'s own output.
+(`src/faint_fuzzies`, so the test code itself is never measured) and turn on `show_missing`, which lists the uncovered
+line numbers of each file in `coverage report`'s own output.
 
 ## Linting
 
@@ -1415,11 +1449,13 @@ uncovered line numbers of each file in `coverage report`'s own output.
 [Install](#install)):
 
 ```
-uv run ruff check src/
+uv run ruff check src/ tests/
 uv run pylint src/faint_fuzzies
 ```
 
-Both are scoped to `src/`, and both read their settings from `pyproject.toml`: a 120-character line length.
+Ruff also checks the tests; pylint is scoped to `src/`, since the unit tests deliberately import private
+`_functions`, which pylint would report as `protected-access`. Both read their settings from `pyproject.toml`: a
+120-character line length.
 Pylint also has its missing-docstring checks and `import-outside-toplevel` turned off - this project only
 comments where the why is non-obvious, and uses a few deliberate deferred imports (for example
 `domain/orbits.py`'s `import matplotlib`).

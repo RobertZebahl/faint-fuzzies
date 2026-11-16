@@ -1,7 +1,7 @@
 *** Settings ***
-Documentation       Filter operations against JSON catalogues in the common format.
-...                 Every row of a template names the filter, the fixture catalogue and the
-...                 first names of the objects that must come back, in catalogue order.
+Documentation       The filter command over JSON catalogues in the common format: its input, output and
+...                 usage errors. The filter criteria themselves are unit tests (tests/unit/domain/test_filters*.py);
+...                 the smoke test here only shows that a filter given as JSON reaches them.
 Resource            ../../resources/cli.resource
 
 
@@ -10,21 +10,12 @@ ${OBJECTS}      objects.json
 
 
 *** Test Cases ***
-Empty Filter Matches Every Object
+A Filter Given As JSON Selects The Objects
+    [Documentation]    Each row names the filter, the fixture catalogue and the first names of the objects that must
+    ...    come back, in catalogue order.
     [Template]    Filter Should Return
     {}    ${OBJECTS}    3C48    H1.1    NGC752    Mond    78P/Gehrels    2 Sge    HDS2753    STFA41    STF1884
-
-Name Matches Exactly And Ignores Case
-    [Template]    Filter Should Return
-    {"name": "NGC1055"}                 ${OBJECTS}    H1.1
-    {"name": "ngc1055"}                 ${OBJECTS}    H1.1
-    {"name": "NGC105"}                  ${OBJECTS}
-    {"name": ["3C48", "ngc752"]}        ${OBJECTS}    3C48    NGC752
-
-Every Language Variant Of A Name Matches
-    [Template]    Filter Should Return
-    {"name": "Moon"}    ${OBJECTS}    Mond
-    {"name": "mond"}    ${OBJECTS}    Mond
+    {"type": "Gx", "constellation": "Cet"}    ${OBJECTS}    H1.1
 
 Abbreviated Forms Are Added To Names And Groups In Memory
     [Documentation]    "Messier 31" also matches as "M31", "Trumpler 37" as "Tr37"; the abbreviation is
@@ -50,73 +41,6 @@ The Abbreviated Form Is Not Written Back
     ${path}=    Fixture    name_abbreviations.json
     ${check}=    Run CLI    format    --check    ${path}
     Should Be Equal As Integers    ${check.rc}    0    msg=${check.stderr}
-
-Group Filter Matches The Group And Its Members
-    [Template]    Filter Should Return
-    {"group": "2 sge"}    ${OBJECTS}    2 Sge    HDS2753    STFA41
-    {"group": "400"}      ${OBJECTS}    H1.1
-
-Name Group Matches Whichever An Object Actually Has
-    [Documentation]    name_group matches a value against either names or groups, exact and
-    ...    case-insensitive, like name_group_pattern but without needing a regular expression.
-    [Template]    Filter Should Return
-    {"name_group": "NGC1055"}                ${OBJECTS}    H1.1
-    {"name_group": "2 sge"}                  ${OBJECTS}    2 Sge    HDS2753    STFA41
-    {"name_group": ["NGC1055", "2 sge"]}     ${OBJECTS}    H1.1    2 Sge    HDS2753    STFA41
-
-Type Filter Matches Any Listed Type Ignoring Case
-    [Template]    Filter Should Return
-    {"type": "gx"}                ${OBJECTS}    H1.1
-    {"type": ["Gx", "OC"]}        ${OBJECTS}    H1.1    NGC752
-    {"type": "S"}                 ${OBJECTS}    Mond    78P/Gehrels
-
-Type Exclude Works For Multi Character Codes
-    [Documentation]    Multi-character type codes, such as OC or Gx, match as whole codes.
-    [Template]    Filter Should Return
-    {"type": ["Gx", "OC"], "type_exclude": "OC"}      ${OBJECTS}    H1.1
-    {"type": ["Gx", "OC"], "type_exclude": ["gx"]}    ${OBJECTS}    NGC752
-    {"type": ["S", "Q"], "type_exclude": "S"}         ${OBJECTS}    3C48
-
-Constellation Filter Ignores Case
-    [Template]    Filter Should Return
-    {"constellation": "sge"}             ${OBJECTS}    2 Sge    HDS2753    STFA41
-    {"constellation": ["Cet", "and"]}    ${OBJECTS}    H1.1    NGC752
-
-Patterns Are Case Insensitive Regular Expressions That Match Completely
-    [Documentation]    name_pattern, group_pattern and constellation_pattern are regular expressions.
-    [Template]    Filter Should Return
-    {"name_pattern": "NGC10.*"}                        ${OBJECTS}    H1.1
-    {"name_pattern": "ngc10"}                          ${OBJECTS}
-    {"name_pattern": ["3C.*", "STF1.*"]}               ${OBJECTS}    3C48    STF1884
-    {"group_pattern": "2 .*"}                          ${OBJECTS}    2 Sge    HDS2753    STFA41
-    {"constellation_pattern": "S.*"}                   ${OBJECTS}    2 Sge    HDS2753    STFA41
-    {"constellation_pattern": "[ac].*"}                ${OBJECTS}    H1.1    NGC752
-    {"name_pattern": "H1[.].*", "type": "Gx"}          ${OBJECTS}    H1.1
-
-Name Group Pattern Matches Whichever An Object Actually Has
-    [Documentation]    name_group_pattern matches a name or a group with the one pattern - H1.1 (no group
-    ...    of its own) by name, 2 Sge and its members (sharing its group) by group, without needing
-    ...    name_pattern and group_pattern both given to find either kind.
-    [Template]    Filter Should Return
-    {"name_group_pattern": "H1[.].*"}          ${OBJECTS}    H1.1
-    {"name_group_pattern": "2 .*"}             ${OBJECTS}    2 Sge    HDS2753    STFA41
-    {"name_group_pattern": "H1[.].*|2 .*"}     ${OBJECTS}    H1.1    2 Sge    HDS2753    STFA41
-
-Criteria Are Combined With And
-    [Template]    Filter Should Return
-    {"type": "Gx", "constellation": "Cet"}    ${OBJECTS}    H1.1
-    {"type": "Gx", "constellation": "And"}    ${OBJECTS}
-
-Is Group Selects Group Records
-    [Template]    Filter Should Return
-    {"is_group": true}                            ${OBJECTS}    2 Sge
-    {"is_group": false, "constellation": "Sge"}    ${OBJECTS}    HDS2753    STFA41
-
-Excluding Group Members Only Affects Members Of Double Star Groups
-    [Template]    Filter Should Return
-    {"type": "**"}                                       ${OBJECTS}    2 Sge    HDS2753    STFA41    STF1884
-    {"type": "**", "exclude_group_members": true}        ${OBJECTS}    2 Sge    STF1884
-    {"group": "400", "exclude_group_members": true}      ${OBJECTS}    H1.1
 
 Several Catalogues Are Searched In Order
     ${labels}=    Filter Labels    {"type": "Gx"}    ${OBJECTS}    more_objects.json
@@ -184,6 +108,7 @@ Invalid Filters Are Rejected
     {"catalogue": 5}           'catalogue' must be a string or a list of strings
     {"project": "nonsense"}    unknown project 'nonsense'
     {"name_pattern": "("}      invalid regular expression '('
+    {"magnitude": {"range": [1, 2], "band": "x"}}    'magnitude.band' must be one of v, b, p
     {"type": }                 invalid JSON in filter
     missing_filter.json        cannot read filter file
 
