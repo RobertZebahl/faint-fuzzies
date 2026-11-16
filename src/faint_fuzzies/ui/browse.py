@@ -66,10 +66,42 @@ OBJECT_COLUMNS = [
     {"name": "catalogue", "label": "Catalogue", "field": "catalogue", "align": "center", "sortable": True},
     {"name": "types", "label": "Type", "field": "types", "align": "center", "sortable": True},
     {"name": "constellation", "label": "Constellation", "field": "constellation", "align": "center", "sortable": True},
-    {"name": "magnitude", "label": "Magnitude", "field": "magnitude", "align": "center", "sortable": True},
-    {"name": "size", "label": "Size / Separation", "field": "size", "align": "center", "sortable": True},
+    # sorted by number, not by the text shown (see _magnitude_value, _size_value, _OBJECT_SORT_METHOD)
+    {"name": "magnitude", "label": "Magnitude", "field": "magnitude_value", "align": "center", "sortable": True},
+    {"name": "size", "label": "Size / Separation", "field": "size_value", "align": "center", "sortable": True},
     {"name": "observations", "label": "Observations", "field": "observations", "align": "center", "sortable": True},
 ]
+
+# the fields whose missing values (an Object with no magnitude, size or separation) sort last in either direction,
+# rather than first when ascending as Quasar's own sort has it - else sorting by magnitude starts with every
+# Object that has none
+_MISSING_LAST_FIELDS = ("magnitude_value", "size_value")
+
+# Quasar's own default sort (QTable's sort-method), except for _MISSING_LAST_FIELDS: a column's rows sorted by
+# its field - missing values first (ascending), numbers and booleans by value, anything else as lower-case text
+_OBJECT_SORT_METHOD = """(rows, sortBy, descending) => {
+    const fields = FIELDS;
+    const missingLast = MISSING_LAST;
+    const field = fields[sortBy];
+    if (field === undefined) return rows;
+    const dir = descending ? -1 : 1;
+    const missing = value => value === null || value === undefined;
+    return rows.sort((a, b) => {
+        const A = a[field], B = b[field];
+        if (missing(A) || missing(B)) {
+            if (missing(A) && missing(B)) return 0;
+            if (missingLast.includes(field)) return missing(A) ? 1 : -1;
+            return (missing(A) ? -1 : 1) * dir;
+        }
+        if ((typeof A === "number" && typeof B === "number") || (typeof A === "boolean" && typeof B === "boolean")) {
+            return (A - B) * dir;
+        }
+        const x = String(A).toLowerCase(), y = String(B).toLowerCase();
+        return (x < y ? -1 : x > y ? 1 : 0) * dir;
+    });
+}""".replace("FIELDS", json.dumps({column["name"]: column["field"] for column in OBJECT_COLUMNS})).replace(
+    "MISSING_LAST", json.dumps(_MISSING_LAST_FIELDS))
+
 SESSION_COLUMNS = [
     {"name": "date", "label": "Date", "field": "date", "align": "left", "sortable": True},
     {"name": "time", "label": "Time", "field": "time", "align": "left", "sortable": True},
@@ -354,6 +386,7 @@ class BrowsePage:
                     columns=OBJECT_COLUMNS, rows=[], row_key="id", selection="single",
                     pagination=25, on_select=self._on_object_select,
                 ).classes("w-full").props("dense").mark("objects-table")
+                self.objects_table.props[":sort-method"] = _OBJECT_SORT_METHOD
                 self.objects_table.add_slot("body", _OBJECT_ROW_BODY)
                 self.objects_table.on("member_click", self._on_member_click)
                 self.objects_table.on("reference_click", self._on_reference_click)
@@ -1049,7 +1082,9 @@ def _invalid_row(obj: Object, findings: FindingIndex) -> dict:
         "types": ", ".join(t.value for t in obj.types),
         "constellation": obj.constellation,
         "magnitude": "—",
+        "magnitude_value": None,
         "size": "—",
+        "size_value": None,
         "observations": _count(list(obj.observations)),
         "color": None,
         **_finding_columns(obj, findings),
@@ -1070,7 +1105,9 @@ def _object_row(match, collection: Collection, references: References, findings:
         "types": ", ".join(t.value for t in obj.types),
         "constellation": obj.constellation,
         "magnitude": get_magnitude(obj, references),
+        "magnitude_value": _magnitude_value(obj, references),
         "size": _size_or_separation(obj, references),
+        "size_value": _size_value(obj, references),
         "observations": _count([f.observation for f in match.observations]),
         "color": _object_grade_color(obj),
         **_finding_columns(obj, findings),
@@ -1196,6 +1233,41 @@ def _pick_magnitude(raw: str) -> str:
         return visual
     blue = next((p for p in parts if p.startswith("b") and not p.startswith("bv")), None)
     return blue or parts[0]
+
+
+_LEADING_NUMBER = re.compile(r"[-+]?\d+(?:\.\d+)?")
+
+
+def _magnitude_value(obj: Object, references: References) -> float | None:
+    """The number the Magnitude column sorts by: the value it shows (see get_magnitude), of the primary for a
+    double star; for a range such as a variable star's "v4.1-6.2", its first (brightest) end.
+
+    :param obj: the Object to describe
+    :param references: for resolving the value through a reference
+    :returns: the magnitude, or None when there is none
+    """
+    raw = references.resolved(obj, ObjectAttribute.MAGNITUDE)
+    if not raw:
+        return None
+    shown = _pick_magnitude(raw.split(";")[0] if ObjectType.DOUBLE_STAR in obj.types else raw)
+    number = _LEADING_NUMBER.search(shown)
+    return float(number.group()) if number else None
+
+
+def _size_value(obj: Object, references: References) -> float | None:
+    """The number the Size / Separation column sorts by, in arcseconds for both, so that a galaxy's size and a
+    double star's separation sort together: the separation for a double star, SIZE's major diameter otherwise
+    (see _size_or_separation).
+
+    :param obj: the Object to describe
+    :param references: for resolving a double star's separation through a reference
+    :returns: the size or separation in arcseconds, or None when there is none
+    """
+    if ObjectType.DOUBLE_STAR in obj.types:
+        number = _LEADING_NUMBER.match(references.resolved_separation(obj))
+        return float(number.group()) if number else None
+    major = obj.size_major
+    return major * 60 if major is not None else None
 
 
 def _size_or_separation(obj: Object, references: References) -> str:
