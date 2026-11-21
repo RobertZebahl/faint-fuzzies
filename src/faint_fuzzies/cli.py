@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 import dataclasses
 import datetime
@@ -55,7 +57,7 @@ from faint_fuzzies.storage import load_json_list, write_text_atomically
 from faint_fuzzies.upload import UploadError, upload_site
 
 if TYPE_CHECKING:
-    from faint_fuzzies.ai.search import SearchResult
+    from faint_fuzzies.ai.search import SearchResult  # needs numpy, which only the `ai` extra brings
 
 # what each source catalogue is called on the command line, its converter and a description
 CONVERTERS = {
@@ -111,7 +113,10 @@ def _build_parser() -> argparse.ArgumentParser:
                                help="with --search, the most objects returned; default: [ai].limit")
     filter_parser.add_argument("--min-score", type=float, metavar="SCORE",
                                help="with --search, the lowest similarity (-1 to 1) that still counts; "
-                                    "default: [ai].min_score")
+                                    "default: [ai].min_score, or a lower pre-filter when reranking")
+    filter_parser.add_argument("--no-rerank", action="store_true",
+                               help="with --search, rank by the embeddings alone, without the chat model's "
+                                    "judgement")
     _add_sessions_option(filter_parser)
     _add_community_options(filter_parser)
     _add_object_name_abbreviations_option(filter_parser)
@@ -459,13 +464,11 @@ def _run_filter(args: argparse.Namespace) -> int:
                                double_star_findings, double_star_targets)
                 if spec.finding else None)
     matches = filter_objects(collection, spec, references, observers, findings)
-    if ai_config is None:
-        scored = [(match, None, {}) for match in matches]
-    else:
-        scored = [(result.match, result.score, {id(found): score for found, score in result.hits})
-                  for result in _description_search(args, ai_config, collection, matches)]
-    objects = [match.object.label if args.names_only else _match_json(match, references, score, hit_scores)
-               for match, score, hit_scores in scored]
+    scored: list[tuple[Match, SearchResult | None]] = (
+        [(match, None) for match in matches] if ai_config is None else
+        [(result.match, result) for result in _description_search(args, ai_config, collection, matches)])
+    objects = [match.object.label if args.names_only else _match_json(match, references, result)
+               for match, result in scored]
     skipped = sum(c.skipped for c in collection.catalogues)
     ignored = sum(c.ignored_observations for c in collection.catalogues)
     notices = []
@@ -481,22 +484,28 @@ def _run_filter(args: argparse.Namespace) -> int:
     return EXIT_OK
 
 
-def _match_json(match: Match, references: References, score: float | None,
-                hit_scores: dict[int, float]) -> dict[str, Any]:
-    """A match of `filter`, as JSON; with --search, the match's score first and each observation's own.
+def _match_json(match: Match, references: References, searched: SearchResult | None) -> dict[str, Any]:
+    """A match of `filter`, as JSON; with --search, the score (and, when reranked, the verdict) of its best hit
+    first, and each observation's own.
 
     :param match: the match
     :param references: the collection's cross-catalogue references
-    :param score: the match's best score with --search, None without
-    :param hit_scores: the score of each observation that is a hit, by id() of its FoundObservation
+    :param searched: the match's Description search result with --search, None without
     :returns: the match, as JSON
     """
     obj = match.object
     observations = [_observation_json(f, obj) for f in match.observations]
-    if score is not None:
+    result: dict[str, Any] = {}
+    if searched is not None:
+        hits = {id(hit.found): hit for hit in searched.hits}
         for found, observation in zip(match.observations, observations):
-            observation["score"] = _rounded(hit_scores.get(id(found)))
-    result = {"score": _rounded(score)} if score is not None else {}
+            hit = hits.get(id(found))
+            observation["score"] = None if hit is None else round(hit.score, 4)
+            if searched.verdict is not None:
+                observation["verdict"] = None if hit is None else hit.verdict
+        result["score"] = round(searched.score, 4)
+        if searched.verdict is not None:
+            result["verdict"] = searched.verdict
     return result | {
         "catalogue": obj.catalogue,
         "names": list(obj.names),
@@ -519,8 +528,8 @@ def _search_config(args: argparse.Namespace) -> AiConfig | None:
     :raises UsageError: when --search is missing what it needs, or --limit/--min-score come without it
     """
     if args.search is None:
-        if args.limit is not None or args.min_score is not None:
-            raise UsageError("--limit and --min-score only go with --search")
+        if args.limit is not None or args.min_score is not None or args.no_rerank:
+            raise UsageError("--limit, --min-score and --no-rerank only go with --search")
         return None
     if not args.search.strip():
         raise UsageError("--search needs a text")
@@ -542,8 +551,10 @@ def _search_config(args: argparse.Namespace) -> AiConfig | None:
 
 
 def _description_search(args: argparse.Namespace, ai_config: AiConfig, collection: Collection,
-                        matches: list[Match]) -> list["SearchResult"]:
-    """The matches ranked by --search, after bringing the description index up to date.
+                        matches: list[Match]) -> list[SearchResult]:
+    """The matches ranked by --search, after bringing the description index up to date, and then reranked by
+    the chat model unless --no-rerank is given (see faint_fuzzies.ai.rerank). Reranking judges every hit
+    above its own lower pre-filter (rerank.MIN_SCORE) unless --min-score is given.
 
     :param args: the parsed command-line arguments
     :param ai_config: the AI settings
@@ -551,20 +562,23 @@ def _description_search(args: argparse.Namespace, ai_config: AiConfig, collectio
     :param matches: the filter's matches
     :returns: the matches with hits, best first
     """
+    from faint_fuzzies.ai import rerank
     from faint_fuzzies.ai.client import AiClient
     from faint_fuzzies.ai.index import CACHE_DIR, update_index
     from faint_fuzzies.ai.search import query_vector, rank
     from faint_fuzzies.ai.server import running_server
     client = AiClient(ai_config.url, ai_config.timeout)
     report = step_reporter()
-    with running_server(ai_config, args.data_dir / CACHE_DIR, report, models=(ai_config.embedding_model,)):
+    with running_server(ai_config, args.data_dir / CACHE_DIR, report,
+                        models=(ai_config.embedding_model,) + (() if args.no_rerank else (ai_config.chat_model,))):
         index = update_index(args.data_dir, collection.objects, client, ai_config.embedding_model, report)
         query = query_vector(client, ai_config.embedding_model, args.search)
-    return rank(matches, query, index, ai_config.min_score, ai_config.limit)
-
-
-def _rounded(score: float | None) -> float | None:
-    return None if score is None else round(score, 4)
+        if args.no_rerank:
+            return rank(matches, query, index, ai_config.min_score, ai_config.limit)
+        return rerank.rerank(client, ai_config, args.search,
+                             rank(matches, query, index,
+                                  rerank.MIN_SCORE if args.min_score is None else args.min_score, len(matches)),
+                             report)
 
 
 def _reference_json(reference: Object) -> dict[str, Any]:

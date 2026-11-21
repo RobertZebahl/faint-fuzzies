@@ -1,10 +1,13 @@
 """The HTTP client of the model server's OpenAI-compatible API (Ollama, llama.cpp's llama-server, LM Studio)."""
 import json
+import re
 import urllib.error
 import urllib.request
 from typing import Any
 
 from faint_fuzzies.ai import AiError
+
+THINKING = re.compile(r"<think>.*?</think>", re.DOTALL)
 
 
 class AiClient:
@@ -38,6 +41,31 @@ class AiClient:
         if len(vectors) != len(texts):
             raise AiError(f"the model server returned {len(vectors)} embeddings for {len(texts)} texts")
         return vectors
+
+    def chat_json(self, model: str, messages: list[dict[str, str]], schema: dict[str, Any]) -> Any:
+        """The chat model's answer to `messages`, held to the JSON `schema` (structured output), deterministic
+        as far as the server allows. A "thinking" model's reasoning in <think> tags is dropped.
+
+        :param model: the chat model's name, as the server knows it
+        :param messages: the conversation, as {"role": ..., "content": ...} dicts
+        :param schema: the JSON schema the answer must follow
+        :returns: the parsed answer
+        :raises AiError: when the server cannot be reached or the answer is not JSON
+        """
+        answer = self._post("/chat/completions", {
+            "model": model, "messages": messages, "temperature": 0, "stream": False,
+            "response_format": {"type": "json_schema",
+                                "json_schema": {"name": "answer", "schema": schema, "strict": True}},
+        })
+        try:
+            content = answer["choices"][0]["message"]["content"]
+        except (KeyError, IndexError, TypeError) as exc:
+            raise AiError(f"the model server's chat answer is not understood: {exc!r}") from exc
+        content = THINKING.sub("", content or "").strip()
+        try:
+            return json.loads(content)
+        except json.JSONDecodeError as exc:
+            raise AiError(f"the chat model did not answer with JSON: {content[:200]!r}") from exc
 
     def answers(self) -> bool:
         """Whether a server answers at the URL at all - any HTTP answer counts, even an error status, since

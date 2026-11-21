@@ -12,14 +12,17 @@ from faint_fuzzies.ai.client import AiClient
 
 @pytest.fixture
 def server():
-    state = {"status": 200, "body": None, "requests": []}
+    state = {"status": 200, "body": None, "requests": [], "chat": "{}"}
 
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self):  # pylint: disable=invalid-name
             request = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
             state["requests"].append((self.path, request))
-            body = state["body"] or {"data": [{"index": i, "embedding": [float(len(text)), 1.0]}
-                                              for i, text in reversed(list(enumerate(request["input"])))]}
+            if self.path.endswith("/chat/completions") and state["body"] is None:
+                body = {"choices": [{"message": {"content": state["chat"]}}]}
+            else:
+                body = state["body"] or {"data": [{"index": i, "embedding": [float(len(text)), 1.0]}
+                                                  for i, text in reversed(list(enumerate(request["input"])))]}
             payload = (body if isinstance(body, str) else json.dumps(body)).encode()
             self.send_response(state["status"])
             self.send_header("Content-Length", str(len(payload)))
@@ -68,3 +71,19 @@ def test_an_answer_that_cannot_be_used_is_an_error(server, body, message):
 def test_a_server_that_is_not_there_is_an_error():
     with pytest.raises(AiError, match="cannot reach the model server"):
         AiClient("http://127.0.0.1:9/v1", 2).embed("bge-m3", ["a"])
+
+
+def test_a_chat_answer_is_parsed_and_its_thinking_dropped(server):
+    server["chat"] = '<think>\nThe user wants a verdict.\n</think>\n{"verdicts": []}'
+    answer = AiClient(server["url"], 5).chat_json("qwen3:8b", [{"role": "user", "content": "x"}], {"type": "object"})
+    assert answer == {"verdicts": []}
+    path, request = server["requests"][0]
+    assert path == "/v1/chat/completions"
+    assert request["temperature"] == 0
+    assert request["response_format"]["json_schema"]["schema"] == {"type": "object"}
+
+
+def test_a_chat_answer_that_is_not_json_is_an_error(server):
+    server["chat"] = "Sure! Here are the verdicts."
+    with pytest.raises(AiError, match="did not answer with JSON"):
+        AiClient(server["url"], 5).chat_json("chat", [{"role": "user", "content": "x"}], {})

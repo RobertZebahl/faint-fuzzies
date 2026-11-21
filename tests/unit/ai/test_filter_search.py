@@ -60,6 +60,7 @@ def test_the_index_is_cached_in_the_data_directory(capsys, data_dir):
     pytest.param(["--catalogue", "x.json", "--search", "a"], "needs --data-dir", id="without data dir"),
     pytest.param(["--data-dir", "d", "--search", " "], "needs a text", id="empty text"),
     pytest.param(["--data-dir", "d", "--limit", "3"], "only go with --search", id="limit alone"),
+    pytest.param(["--data-dir", "d", "--no-rerank"], "only go with --search", id="no rerank alone"),
     pytest.param(["--data-dir", "d", "--search", "a", "--min-score", "1.5"], "between -1 and 1", id="bad score"),
 ])
 def test_wrong_search_options_are_usage_errors(capsys, data_dir, args, message):
@@ -73,3 +74,16 @@ def test_without_an_ai_table_search_says_where_it_belongs(capsys, data_dir, monk
     code, _result, err = run(capsys, "--data-dir", str(data_dir), "--search", "a")
     assert code == cli.EXIT_USAGE
     assert "needs an [ai] table" in err
+
+
+def test_reranking_gives_each_hit_and_object_its_verdict(capsys, data_dir):
+    _code, result, _err = run(capsys, "--data-dir", str(data_dir), "--search", "Kugelhaufen")
+    first = result["objects"][0]
+    assert first["verdict"] == "yes"
+    assert all(o["verdict"] == ("yes" if o["score"] is not None else None) for o in first["observations"])
+
+
+def test_no_rerank_ranks_by_the_embeddings_alone(capsys, data_dir):
+    _code, result, _err = run(capsys, "--data-dir", str(data_dir), "--search", "Kugelhaufen", "--no-rerank")
+    first = result["objects"][0]
+    assert "verdict" not in first and all("verdict" not in o for o in first["observations"])

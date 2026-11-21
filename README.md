@@ -154,7 +154,7 @@ The extras `ui` (the local app), `upload` (uploading the website) and `ai` (`fil
 ## Command line
 
 ```
-faint-fuzzies filter   (--data-dir DIR | --catalogue FILE [--catalogue FILE ...] [--sessions FILE] [--observers FILE --community FORMAT OBSERVER FILE ...] [--object-name-abbreviations FILE]) [--filter SPEC] [--search TEXT [--limit N] [--min-score SCORE]] [--names-only] [--output FILE]
+faint-fuzzies filter   (--data-dir DIR | --catalogue FILE [--catalogue FILE ...] [--sessions FILE] [--observers FILE --community FORMAT OBSERVER FILE ...] [--object-name-abbreviations FILE]) [--filter SPEC] [--search TEXT [--limit N] [--min-score SCORE] [--no-rerank]] [--names-only] [--output FILE]
 faint-fuzzies validate (--data-dir DIR | FILE [FILE ...] [--sessions FILE] [--observers FILE --community FORMAT OBSERVER FILE ...] [--object-name-abbreviations FILE] [--optic-names FILE]) [--references] [--duplicate-names] [--output FILE]
 faint-fuzzies format   (--check | --write) (--data-dir DIR | [FILE ...] [--sessions FILE ...]) [--output FILE]
 faint-fuzzies list     (global | project-double-stars | project-deep-sky-with-binoculars) (--data-dir DIR | --catalogue FILE [--catalogue FILE ...] [--observers FILE --community FORMAT OBSERVER FILE ...] [--object-name-abbreviations FILE]) [--sublist NAME] [--output FILE]
@@ -921,7 +921,7 @@ is Docker and the `ai` extra:
 ```toml
 [ai]
 url = "http://localhost:11434/v1"   # the API's base URL; Ollama's OpenAI-compatible one ends in /v1
-chat_model = "qwen3:8b"             # for Questions in natural language (not used yet)
+chat_model = "qwen3:8b"             # judges the hits (see Reranking); later also Questions
 embedding_model = "bge-m3"          # a multilingual embedding model (German and English in one space)
 
 [ai.docker]
@@ -941,8 +941,8 @@ works as before. With `[ai.docker]`, a search:
 * starts the container when it is not running, waits until its server answers, and stops it again afterwards.
   A container that was already running is used as it is and left running, so `docker start faint-fuzzies-ollama`
   keeps it going between searches.
-* downloads `embedding_model` into the server when it does not have it yet - the only thing the tool does that is
-  specific to Ollama.
+* downloads `embedding_model` and `chat_model` into the server when it does not have them yet - the only thing
+  the tool does that is specific to Ollama.
 
 A container is created once and then reused as it is: a changed `image`, `gpu` or `env` only takes effect after
 `docker rm faint-fuzzies-ollama` (the models survive in their volume). An RX 6600 (gfx1032) is not officially
@@ -983,6 +983,17 @@ its best hit) and every one of its observations its own (`null` for one that is 
 observations are still listed. `--limit` and `--min-score` override the config for one run. A good `min_score`
 depends on the embedding model, so it is worth trying a few searches with `--min-score 0` and looking at the
 scores. Embeddings hardly notice a negation: "no structure visible" lands close to "structure visible".
+
+**Reranking.** Embeddings miss a negation ("no structure visible" lands close to "structure visible"), a word
+that only sounds alike ("well seen with averted vision" next to "structure visible"), and a search text that asks
+for two things at once. So, unless `--no-rerank` is given, the chat model then reads the 60 best hits by score
+(every hit from a score of 0.55 on is a candidate, or from `--min-score`) in batches of 10 and judges each: `yes`
+(clearly seen), `partly` (hinted at or uncertain) or `no`. Hits judged `no` are dropped, and so is an Object left
+with none; the others are ranked by their best verdict (`yes` before `partly`), then by score, and the best
+`limit` Objects are kept. Every Object and every one of its hits then also carries its `verdict` (`null` for an
+observation that is not a hit). This takes some seconds per search, depending on the chat model and the GPU;
+judgements are not cached, since they depend on the search text. `--no-rerank` ranks by the embeddings alone, as
+described above, which is quicker and shows what reranking changes.
 
 **The index.** The first search embeds every Description of the data directory (minutes on a GPU, longer on a CPU)
 and keeps the vectors in `cache/ai/embeddings-<model>.npz`; later searches only send texts that are new or were

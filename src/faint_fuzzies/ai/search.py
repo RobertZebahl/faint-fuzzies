@@ -13,16 +13,35 @@ from faint_fuzzies.domain.observation import FoundObservation
 
 
 @dataclass(frozen=True)
+class Hit:
+    """An Observation that fits the search text.
+
+    :ivar found: the observation and the Object that holds it
+    :ivar score: the cosine similarity of its best text to the search text
+    :ivar verdict: the chat model's judgement (see faint_fuzzies.ai.rerank), None when not reranked
+    """
+    found: FoundObservation
+    score: float
+    verdict: str | None = None
+
+
+@dataclass(frozen=True)
 class SearchResult:
     """A matched Object with at least one hit.
 
     :ivar match: the filter's Match, with all of its observations
-    :ivar score: the score of its best hit
-    :ivar hits: its observations that are hits, best first, with their scores
+    :ivar hits: its observations that are hits, best first
     """
     match: Match
-    score: float
-    hits: tuple[tuple[FoundObservation, float], ...]
+    hits: tuple[Hit, ...]
+
+    @property
+    def score(self) -> float:
+        return self.hits[0].score
+
+    @property
+    def verdict(self) -> str | None:
+        return self.hits[0].verdict
 
 
 def query_vector(client: AiClient, model: str, text: str) -> np.ndarray:
@@ -52,9 +71,9 @@ def rank(matches: Sequence[Match], query: np.ndarray, index: DescriptionIndex, m
             rows = [row for text in description_texts(found.observation)
                     if (row := index.row_of(text)) is not None]
             if rows and (best := float(scores[rows].max())) >= min_score:
-                hits.append((found, best))
+                hits.append(Hit(found, best))
         if hits:
-            hits.sort(key=lambda hit: -hit[1])
-            results.append(SearchResult(match, hits[0][1], tuple(hits)))
+            hits.sort(key=lambda hit: -hit.score)
+            results.append(SearchResult(match, tuple(hits)))
     results.sort(key=lambda result: -result.score)  # stable: equal scores keep the filter's order
     return results[:limit]

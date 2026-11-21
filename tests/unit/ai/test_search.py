@@ -27,12 +27,12 @@ def searched(tmp_path):
 def test_the_object_whose_description_fits_best_comes_first(searched):
     results = searched("Kugelhaufen")
     assert results[0].match.object.label == "Messier 13"
-    assert results[0].score == pytest.approx(max(score for _found, score in results[0].hits))
+    assert results[0].score == pytest.approx(max(hit.score for hit in results[0].hits))
 
 
 def test_only_the_observations_above_the_minimum_score_are_hits(searched):
     hits = searched("Kugelhaufen")[0].hits
-    assert [found.observation.descriptions[0][1] for found, _score in hits] == ["Kugelhaufen",
+    assert [hit.found.observation.descriptions[0][1] for hit in hits] == ["Kugelhaufen",
                                                                                "Kugelhaufen mit Filter"]
 
 
@@ -50,7 +50,7 @@ def test_the_limit_counts_objects_and_each_keeps_all_its_hits(searched):
 
 def test_the_hits_of_an_object_are_sorted_best_first(searched):
     for result in searched("Text", min_score=0.0):
-        scores = [score for _found, score in result.hits]
+        scores = [hit.score for hit in result.hits]
         assert scores == sorted(scores, reverse=True)
 
 
