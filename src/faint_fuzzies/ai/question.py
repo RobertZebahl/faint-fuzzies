@@ -15,6 +15,7 @@ from typing import Any
 from faint_fuzzies.ai import AiAnswerError, AiError
 from faint_fuzzies.ai.client import AiClient
 from faint_fuzzies.ai.constellations import CONSTELLATION_NAMES
+from faint_fuzzies.ai.corrections import corrected, is_type_word
 from faint_fuzzies.domain.collection import Collection
 from faint_fuzzies.domain.filters import FilterKey, FilterSpec, FilterSpecError
 from faint_fuzzies.domain.formats import CONSTELLATIONS
@@ -156,7 +157,14 @@ EXAMPLES: tuple[tuple[str, dict[str, Any]], ...] = (  # made up: none is one of 
 
 class QuestionError(AiError):
     """The chat model's answer to a Question cannot be used: its filter is not valid, or it names an object that
-    is not there."""
+    is not there.
+
+    :ivar criteria: the criteria picked in the first step, when it got that far
+    """
+
+    def __init__(self, message: str, criteria: tuple[str, ...] = ()):
+        super().__init__(message)
+        self.criteria = criteria
 
 
 @dataclass(frozen=True)
@@ -200,7 +208,7 @@ def ask(client: AiClient, model: str, question: str, context: Context) -> Answer
     """
     catalogues = [catalogue.name for catalogue in context.collection.catalogues]
     known = sorted(context.observers or (), key=lambda o: o.id)
-    chosen = choose_criteria(client, model, question)
+    chosen = corrected(question, choose_criteria(client, model, question))
     criteria = "\n".join(f"- {key}: {CRITERIA[key]}" for key in chosen) or "none: the filter stays empty"
     prompt = INSTRUCTIONS.format(
         today=context.today.isoformat(), criteria=criteria,
@@ -215,9 +223,9 @@ def ask(client: AiClient, model: str, question: str, context: Context) -> Answer
         raw = client.chat_json(model, [{"role": "system", "content": prompt},
                                        {"role": "user", "content": f"Question: {question}"}],
                                schema(catalogues, [o.id for o in known], chosen), MAX_TOKENS)
-    except AiAnswerError as exc:
-        raise QuestionError(str(exc)) from exc
-    answer = answer_of(raw, context.collection)
+        answer = answer_of(raw, context.collection)
+    except (AiAnswerError, QuestionError) as exc:
+        raise QuestionError(str(exc), tuple(str(key) for key in chosen)) from exc
     return Answer(answer.filter, answer.text, answer.ignored, tuple(str(key) for key in chosen))
 
 
@@ -259,8 +267,15 @@ def answer_of(raw: Any, collection: Collection) -> Answer:
     if unknown := sorted(spec.keys() - set(CRITERIA)):  # a server that ignores the schema
         raise QuestionError(f"the chat model's filter uses '{unknown[0]}', which a Question cannot")
     if K.NAME_GROUP in spec:
-        spec[K.NAME_GROUP] = resolve_names(spec[K.NAME_GROUP] if isinstance(spec[K.NAME_GROUP], list)
-                                           else [spec[K.NAME_GROUP]], collection)
+        names = [name for name in (spec[K.NAME_GROUP] if isinstance(spec[K.NAME_GROUP], list)
+                                   else [spec[K.NAME_GROUP]]) if not _kind_not_name(name, collection)]
+        if names:
+            spec[K.NAME_GROUP] = resolve_names(names, collection)
+        else:
+            del spec[K.NAME_GROUP]
+    # only the owner's observations have a private grade: OWNER beside it asks for nothing more
+    if K.PRIVATE_GRADE in spec and spec.get(K.SCOPE) in (["OWNER"], "OWNER"):
+        del spec[K.SCOPE]
     try:
         FilterSpec.from_dict(spec)
     except FilterSpecError as exc:
@@ -339,6 +354,18 @@ def schema(catalogues: list[str], observer_ids: list[str], keys: Iterable[Filter
         "required": ["filter", "text", "ignored"],
         "additionalProperties": False,
     }
+
+
+def _kind_not_name(name: Any, collection: Collection) -> bool:
+    """Whether `name` is a word for a kind of object ("Galaxien") that no object is named after (as the
+    "Ringnebel" may be): the model's slip, dropped rather than reported."""
+    if not (isinstance(name, str) and is_type_word(name)):
+        return False
+    try:
+        resolve_names([name], collection)
+    except QuestionError:
+        return True
+    return False
 
 
 def _empty(value: Any) -> bool:

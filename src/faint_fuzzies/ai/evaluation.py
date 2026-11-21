@@ -145,7 +145,7 @@ def _outcome(client: AiClient, model: str, case: dict[str, Any], context: Contex
     try:
         answer = ask(client, model, case["question"], context)
     except QuestionError as exc:
-        return False, False, {**case, "error": str(exc)}
+        return False, False, {**case, "error": str(exc), "criteria": list(exc.criteria)}
     same_filter = comparable(answer.filter, context.collection) == expected
     same_text = (answer.text is None) == (case["text"] is None)
     if same_filter and same_text:

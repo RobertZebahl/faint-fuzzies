@@ -1061,9 +1061,15 @@ model picked in its first step), so they can be corrected and run again with
 * **Grades.** It uses `public_grade`, unless the Question asks for private or personal observations ("privat",
   "persönlich", "private", "personal"); then `private_grade`, on the scale of the kind of Object (see Private
   Grade). "My" or "meine" alone is `scope` `OWNER`.
+* **Word lists.** Some rules hold for certain and are not left to the model: a word for a kind of object
+  ("Galaxien", "double stars") always asks for a `type`, "a small telescope" is an `aperture` and no `optic_type`,
+  a list's name ("Deep Sky mit dem Fernglas") is its `project` and its words ask for nothing else, and
+  `optic_type` without an instrument's word or `constellation` without a constellation's name is dropped. Only
+  the owner's observations have a private grade, so `scope` `OWNER` beside `private_grade` is dropped too.
 * **Names.** The model passes an object name on as written; it is then looked up among the data's names, whatever
   its case and first space, and by its short form from `object_name_abbreviations.json` ("M 31", "Messier 31").
-  A name that is not there is an error with the closest names that are.
+  A name that is not there is an error with the closest names that are; a word for a kind of object given as a
+  name ("Galaxien") is dropped, unless an object has it as its name.
 * **What does not fit.** A part of the Question no criterion can express ("im Winter", "bright" without a
   number) is listed under `ignored` and warned about, and the rest runs - so the result may be broader than
   asked. An answer that is not a valid filter is an error, never guessed at.

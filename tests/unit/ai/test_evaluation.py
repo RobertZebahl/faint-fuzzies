@@ -75,9 +75,11 @@ def question(text, expected_filter, expected_text=None):
     return {"question": text, "filter": expected_filter, "text": expected_text}
 
 
-def asked_with(answers, cases):
-    """The report on `cases`, the fake model answering the n-th question with answers[n]."""
+def asked_with(answers, cases, criteria=None):
+    """The report on `cases`, the fake model answering the n-th question with answers[n] (and picking `criteria`
+    in its first step, none unless given)."""
     client = FakeClient()
+    client.criteria = criteria
     replies = iter(answers)
     original = client.chat_json
     client.chat_json = lambda model, messages, schema, max_tokens=None: next(replies) if "filter" in schema["properties"] \
@@ -110,8 +112,9 @@ def test_a_text_only_has_to_be_there_or_not():
 
 def test_a_rejected_answer_is_a_mismatch_with_its_error():
     report = asked_with([{"filter": {"type": ["Galaxy"]}, "text": None, "ignored": []}],
-                        [question("q", {"type": ["Gx"]})])
+                        [question("q", {"type": ["Gx"]})], criteria=["type"])
     assert report["agree"] == 0 and "not valid" in report["mismatches"][0]["error"]
+    assert report["mismatches"][0]["criteria"] == ["type"]
 
 
 @pytest.mark.parametrize("content, message", [

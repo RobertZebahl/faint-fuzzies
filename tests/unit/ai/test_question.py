@@ -174,3 +174,24 @@ def test_the_constellations_names_are_shown_only_when_one_is_asked_for(criteria,
     ask(client, "chat", "Planetarische Nebel in der Leier", Context(COLLECTION, OBSERVERS, date(2026, 11, 21)))
     prompt = client.questions[0][0]["content"]
     assert ("Lyr: Lyra, Leier" in prompt) is shown
+
+
+def test_a_kind_of_object_given_as_a_name_is_dropped_unless_an_object_has_that_name():
+    collection = fake_collection(["own.json"], [obj("M 57", "Ringnebel")])
+    raw = {"filter": {"name_group": ["Galaxien", "Ringnebel"]}, "text": None, "ignored": []}
+    assert answer_of(raw, collection).filter == {"name_group": ["Ringnebel"]}
+    assert answer_of({**raw, "filter": {"name_group": ["Galaxien"]}}, collection).filter == {}
+
+
+def test_owner_beside_a_private_grade_is_dropped():
+    raw = {"filter": {"private_grade": [2, 2], "scope": ["OWNER"]}, "text": None, "ignored": []}
+    assert answer_of(raw, COLLECTION).filter == {"private_grade": [2, 2]}
+
+
+def test_a_rejected_answer_keeps_the_criteria_picked():
+    client = FakeClient()
+    client.criteria = ["name_group"]
+    client.answer = {"filter": {"name_group": ["NGC 9999"]}, "text": None, "ignored": []}
+    with pytest.raises(QuestionError) as caught:
+        ask(client, "chat", "Beobachtungen von NGC 9999", Context(COLLECTION, OBSERVERS, date(2026, 11, 21)))
+    assert caught.value.criteria == ("name_group",)
