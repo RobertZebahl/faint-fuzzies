@@ -5,7 +5,7 @@ import urllib.error
 import urllib.request
 from typing import Any
 
-from faint_fuzzies.ai import AiError
+from faint_fuzzies.ai import AiError, AiHttpError
 
 THINKING = re.compile(r"<think>.*?</think>", re.DOTALL)
 
@@ -20,6 +20,7 @@ class AiClient:
     def __init__(self, url: str, timeout: float):
         self.url = url.rstrip("/")
         self.timeout = timeout
+        self._no_reasoning = True  # until the server refuses `reasoning_effort`
 
     def embed(self, model: str, texts: list[str]) -> list[list[float]]:
         """The embedding vector of each text, in the order of `texts`.
@@ -44,7 +45,12 @@ class AiClient:
 
     def chat_json(self, model: str, messages: list[dict[str, str]], schema: dict[str, Any]) -> Any:
         """The chat model's answer to `messages`, held to the JSON `schema` (structured output), deterministic
-        as far as the server allows. A "thinking" model's reasoning in <think> tags is dropped.
+        as far as the server allows.
+
+        A "thinking" model (Qwen3, say) would first write hundreds of tokens of reasoning for every answer, so
+        it is asked not to with `reasoning_effort: "none"`; a server that refuses the field (an error status
+        naming it) is asked again without it, and from then on never with it. Reasoning that still comes back
+        in <think> tags is dropped.
 
         :param model: the chat model's name, as the server knows it
         :param messages: the conversation, as {"role": ..., "content": ...} dicts
@@ -52,11 +58,20 @@ class AiClient:
         :returns: the parsed answer
         :raises AiError: when the server cannot be reached or the answer is not JSON
         """
-        answer = self._post("/chat/completions", {
+        payload = {
             "model": model, "messages": messages, "temperature": 0, "stream": False,
             "response_format": {"type": "json_schema",
                                 "json_schema": {"name": "answer", "schema": schema, "strict": True}},
-        })
+        }
+        try:
+            answer = self._post("/chat/completions", payload | ({"reasoning_effort": "none"} if self._no_reasoning
+                                                                 else {}))
+        except AiHttpError as exc:
+            refused = exc.status == 400 and re.search("reason|think", exc.detail, re.IGNORECASE)
+            if not (self._no_reasoning and refused):
+                raise
+            self._no_reasoning = False
+            answer = self._post("/chat/completions", payload)
         try:
             content = answer["choices"][0]["message"]["content"]
         except (KeyError, IndexError, TypeError) as exc:
@@ -86,7 +101,8 @@ class AiClient:
                 body = response.read()
         except urllib.error.HTTPError as exc:
             detail = exc.read().decode("utf-8", "replace").strip()[:500]
-            raise AiError(f"the model server at {self.url} answered {exc.code}: {detail or exc.reason}") from exc
+            raise AiHttpError(f"the model server at {self.url} answered {exc.code}: {detail or exc.reason}",
+                              exc.code, detail) from exc
         except (TimeoutError, urllib.error.URLError, ConnectionError) as exc:
             reason = getattr(exc, "reason", exc)
             raise AiError(f"cannot reach the model server at {self.url}: {reason}") from exc

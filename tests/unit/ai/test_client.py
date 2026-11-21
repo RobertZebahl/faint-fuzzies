@@ -18,13 +18,16 @@ def server():
         def do_POST(self):  # pylint: disable=invalid-name
             request = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
             state["requests"].append((self.path, request))
-            if self.path.endswith("/chat/completions") and state["body"] is None:
+            refuse = state.get("refuse_reasoning") and "reasoning_effort" in request
+            if refuse:
+                body = '{"error": "unsupported parameter: reasoning_effort"}'
+            elif self.path.endswith("/chat/completions") and state["body"] is None:
                 body = {"choices": [{"message": {"content": state["chat"]}}]}
             else:
                 body = state["body"] or {"data": [{"index": i, "embedding": [float(len(text)), 1.0]}
                                                   for i, text in reversed(list(enumerate(request["input"])))]}
             payload = (body if isinstance(body, str) else json.dumps(body)).encode()
-            self.send_response(state["status"])
+            self.send_response(400 if refuse else state["status"])
             self.send_header("Content-Length", str(len(payload)))
             self.end_headers()
             self.wfile.write(payload)
@@ -87,3 +90,23 @@ def test_a_chat_answer_that_is_not_json_is_an_error(server):
     server["chat"] = "Sure! Here are the verdicts."
     with pytest.raises(AiError, match="did not answer with JSON"):
         AiClient(server["url"], 5).chat_json("chat", [{"role": "user", "content": "x"}], {})
+
+
+def test_a_chat_asks_the_model_not_to_think(server):
+    AiClient(server["url"], 5).chat_json("qwen3:8b", [{"role": "user", "content": "x"}], {})
+    assert server["requests"][0][1]["reasoning_effort"] == "none"
+
+
+def test_a_server_that_refuses_the_reasoning_field_is_asked_again_without_it_and_never_with_it_again(server):
+    server["refuse_reasoning"] = True
+    client = AiClient(server["url"], 5)
+    assert client.chat_json("chat", [{"role": "user", "content": "x"}], {}) == {}
+    client.chat_json("chat", [{"role": "user", "content": "y"}], {})
+    assert ["reasoning_effort" in request for _path, request in server["requests"]] == [True, False, False]
+
+
+def test_another_error_of_a_chat_is_not_retried(server):
+    server["status"], server["body"] = 404, 'model "chat" not found'
+    with pytest.raises(AiError, match="404"):
+        AiClient(server["url"], 5).chat_json("chat", [{"role": "user", "content": "x"}], {})
+    assert len(server["requests"]) == 1
