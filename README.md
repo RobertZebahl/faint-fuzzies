@@ -932,6 +932,20 @@ support (such as the RX 6600, gfx1032), Ollama needs `HSA_OVERRIDE_GFX_VERSION=1
 `env` below); `ollama ps` shows whether a loaded model runs on the GPU or the CPU. llama.cpp's `llama-server` or
 LM Studio work as well, but `llama-server` serves one model per process.
 
+Ollama in a container is the isolated alternative (the `rocm` image for an AMD GPU, `ollama/ollama` otherwise).
+`127.0.0.1:` keeps the port off the network - without it, Docker publishes it on every interface, past `ufw`:
+
+```
+docker run -d --name ollama --device /dev/kfd --device /dev/dri -e HSA_OVERRIDE_GFX_VERSION=10.3.0 \
+  -v ollama:/root/.ollama -p 127.0.0.1:11434:11434 ollama/ollama:rocm
+docker exec ollama ollama pull bge-m3
+docker stop ollama
+```
+
+The models then live in the volume `ollama`, and the start command is `["docker", "start", "-a", "ollama"]`
+(it runs as long as the container does and passes the stop on to it); the GPU setting goes into the container
+with `-e` as above, not into `env`. Podman works the same way, rootless.
+
 **The configuration.** An `[ai]` table in `~/.config/faint-fuzzies/config.toml`; without it, `--search` says so and
 everything else works as before:
 
