@@ -154,11 +154,11 @@ The extras `ui` (the local app), `upload` (uploading the website) and `ai` (`fil
 ## Command line
 
 ```
-faint-fuzzies filter   (--data-dir DIR | --catalogue FILE [--catalogue FILE ...] [--sessions FILE] [--observers FILE --community FORMAT OBSERVER FILE ...] [--object-name-abbreviations FILE]) [--filter SPEC] [--search TEXT [--limit N] [--min-score SCORE] [--no-rerank]] [--names-only] [--output FILE]
+faint-fuzzies filter   (--data-dir DIR | --catalogue FILE [--catalogue FILE ...] [--sessions FILE] [--observers FILE --community FORMAT OBSERVER FILE ...] [--object-name-abbreviations FILE]) [--filter SPEC] [--search TEXT | --question TEXT] [--limit N] [--min-score SCORE] [--no-rerank] [--names-only] [--output FILE]
 faint-fuzzies validate (--data-dir DIR | FILE [FILE ...] [--sessions FILE] [--observers FILE --community FORMAT OBSERVER FILE ...] [--object-name-abbreviations FILE] [--optic-names FILE]) [--references] [--duplicate-names] [--output FILE]
 faint-fuzzies format   (--check | --write) (--data-dir DIR | [FILE ...] [--sessions FILE ...]) [--output FILE]
 faint-fuzzies list     (global | project-double-stars | project-deep-sky-with-binoculars) (--data-dir DIR | --catalogue FILE [--catalogue FILE ...] [--observers FILE --community FORMAT OBSERVER FILE ...] [--object-name-abbreviations FILE]) [--sublist NAME] [--output FILE]
-faint-fuzzies eval-ai  --data-dir DIR [--output FILE]
+faint-fuzzies eval-ai  --data-dir DIR [--only rerank|questions] [--output FILE]
 faint-fuzzies serve    [--data-dir DIR] [--port PORT] [--no-dss-fetch] [--no-orbits-generation]
 faint-fuzzies clean-dss --data-dir DIR [--dry-run] [--output FILE]
 faint-fuzzies clean-orbits --data-dir DIR [--all] [--dry-run] [--output FILE]
@@ -229,6 +229,7 @@ orbits/                                                             generated or
 site-build/                                                         the app's own built website (see below); never read, only written
 cache/ai/                                                           generated Description search index (see Description search); safe to delete
 observations/owner/ai_eval/rerank.json                             the test set of `eval-ai` (optional, see Description search)
+observations/owner/ai_eval/questions.json                          the Questions test set of `eval-ai` (optional, see Questions)
 ```
 
 `catalogues/`, `observations/global/` and `observations/projects/` hold only external data — never the own
@@ -1011,18 +1012,59 @@ So a reranked search shows the *best examples*, not every hit: there may be hund
 judging them all would take minutes. `--no-rerank` ranks by the embeddings alone, as described above, which is
 quicker, finds every hit above the score (unjudged), and shows what reranking changes.
 
-**Measuring the reranking.** `eval-ai --data-dir DIR` judges a test set of hand-judged notes with the chat model
-and reports how many verdicts agree, a confusion count (expected -> got), every case that disagrees, the rubric
-written for each search, and the seconds it took - so a change of prompt or model shows in numbers. The test set is
-`observations/owner/ai_eval/rerank.json` in the data directory, a JSON list of
-`{"search": "...", "note": "...", "expected": "yes" | "partly" | "no", "object": "..."}` (`object` is optional and
-only shown). It holds observation texts, so it belongs to the data directory, never to the repository. What counts
-as a Detail is defined in [CONTEXT.md](CONTEXT.md).
+**Measuring.** `eval-ai --data-dir DIR` measures the chat model against the test sets of the data directory
+that are there, each reported under its name (`--only rerank` or `--only questions` picks one), so a change of
+prompt or model shows in numbers. Both hold your data and belong to the data directory, never to the repository.
+
+* `rerank`: judges a test set of hand-judged notes and reports how many verdicts agree, a confusion count
+  (expected -> got), every case that disagrees, the rubric used for each search, and the seconds it took. The test
+  set is `observations/owner/ai_eval/rerank.json`, a JSON list of
+  `{"search": "...", "note": "...", "expected": "yes" | "partly" | "no", "object": "..."}` (`object` is optional
+  and only shown). What counts as a Detail is defined in [CONTEXT.md](CONTEXT.md).
+* `questions`: asks every Question of `observations/owner/ai_eval/questions.json`, a JSON list of
+  `{"question": "...", "filter": {...}, "text": "..." | null, "ignored": [...]}` (`ignored` is optional and only
+  shown), and reports how many agree in all, in the filter and in the text. The filter has to come out the same: a
+  list's order does not matter, a single value counts as a list of one, and names are compared by the Objects they
+  find ("M 13" and "Messier 13" are the same). The text only has to be there or not, since many texts are right.
 
 **The index.** The first search embeds every Description of the data directory (minutes on a GPU, longer on a CPU)
 and keeps the vectors in `cache/ai/embeddings-<model>.npz`; later searches only send texts that are new or were
 changed, and drop those no Observation has any more. Each embedding model has a file of its own. Deleting
 `cache/ai/` is always safe - the next search rebuilds it.
+
+## Questions
+
+`filter --question TEXT` turns a Question in German or English into a filter and, when it asks about what was
+seen, a Description search, and then runs both:
+
+```
+faint-fuzzies filter --data-dir DIR --question "Which galaxies showed details with up to 4 inch aperture?"
+faint-fuzzies: filter {"type": ["Gx"], "aperture": [null, 102]}; search "details seen"
+```
+
+It needs what a Description search needs (`--data-dir`, the `ai` extra, the `[ai]` table) and replaces `--filter`
+and `--search`; `--limit`, `--min-score`, `--no-rerank` and `--output` apply as with `--search`. The filter and
+the search text are shown on stderr and come with the result as `question`
+(`{"asked": ..., "filter": ..., "text": ..., "ignored": [...]}`), so they can be corrected and run again with
+`--filter` and `--search`.
+
+* **Criteria.** The chat model only gets the criteria a Question asks for: `type`, `constellation`, `magnitude`,
+  `magnitude_delta`, `separation`, `size`, `size_ratio`, `seen`, `project`, `catalogue`, `name_group`,
+  `observer`, `scope`, `method`, `optic_type`, `aperture`, `date`, `has_sketch`, `has_photograph`, `has_image`,
+  `public_grade` and `private_grade`. The others stay with `--filter`.
+* **Numbers.** It does not guess a number the Question does not give, except by these conventions: thin galaxies
+  are `size_ratio` from 5, superthin ones from 7, a small telescope has up to 102 mm, binoculars ("Fernglas") are
+  `optic_type` `binoculars`. Inches become millimetres; relative dates ("seit 2020", "last year") count from
+  today.
+* **Grades.** It uses `public_grade`, unless the Question asks for private or personal observations ("privat",
+  "persönlich", "private", "personal"); then `private_grade`, on the scale of the kind of Object (see Private
+  Grade). "My" or "meine" alone is `scope` `OWNER`.
+* **Names.** The model passes an object name on as written; it is then looked up among the data's names, whatever
+  its case and first space, and by its short form from `object_name_abbreviations.json` ("M 31", "Messier 31").
+  A name that is not there is an error with the closest names that are.
+* **What does not fit.** A part of the Question no criterion can express ("im Winter", "bright" without a
+  number) is listed under `ignored` and warned about, and the rest runs - so the result may be broader than
+  asked. An answer that is not a valid filter is an error, never guessed at.
 
 ## The Local App
 

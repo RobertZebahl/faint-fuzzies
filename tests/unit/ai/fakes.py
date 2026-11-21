@@ -2,7 +2,7 @@
 dimension so no vector is zero - enough to tell which texts are about the same thing. Its chat model judges a
 note "n" (no) when it has a negation, "p" (partly) when it hedges, "y" (yes) when it has a word of the search,
 and gives the notes listed in `skip` the unusable letter "x". Asked for the kind of a search, it gives `kind` ("o"
-unless a test sets another); asked for a rubric, the same one for every search."""
+unless a test sets another); asked for a rubric, the same one for every search; asked a Question, `answer`."""
 import re
 
 NEGATIONS = ("nicht", "not", "keine", "kein")
@@ -31,6 +31,8 @@ class FakeClient:
         self.rubrics = []
         self.kinds = []
         self.kind = "o"
+        self.answer = {"filter": {}, "text": None, "ignored": []}
+        self.questions = []
 
     def embed(self, model, texts):
         self.embedded.extend(texts)
@@ -38,6 +40,9 @@ class FakeClient:
 
     def chat_json(self, model, messages, schema):
         prompt = messages[-1]["content"]
+        if "filter" in schema.get("properties", {}):
+            self.questions.append(messages)
+            return self.answer
         if "kind" in schema.get("properties", {}):
             self.kinds.append(prompt)
             return {"kind": self.kind}

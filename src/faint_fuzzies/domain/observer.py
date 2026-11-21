@@ -1,4 +1,5 @@
 """Loading the observers file: the people whose observations are published (see catalogue.py, observation.py)."""
+from collections.abc import Iterator
 from dataclasses import dataclass
 from enum import Enum, StrEnum
 from pathlib import Path
@@ -98,6 +99,10 @@ class Observers:
 
     def __len__(self) -> int:
         return len(self._by_id)
+
+    def __iter__(self) -> Iterator[Observer]:
+        """Every observer once, in the file's order (an alias is no observer of its own)."""
+        return iter({id(o): o for o in self._by_id.values()}.values())
 
 
 def load_observers(path: Path) -> Observers:

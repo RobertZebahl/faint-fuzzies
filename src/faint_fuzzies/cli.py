@@ -6,7 +6,7 @@ import datetime
 import gc
 import json
 import sys
-from collections.abc import Iterator
+from collections.abc import Callable, Generator, Iterator
 from contextlib import contextmanager
 from dataclasses import dataclass
 from itertools import zip_longest
@@ -57,6 +57,7 @@ from faint_fuzzies.storage import load_json_list, write_text_atomically
 from faint_fuzzies.upload import UploadError, upload_site
 
 if TYPE_CHECKING:
+    from faint_fuzzies.ai.question import Context as QuestionContext
     from faint_fuzzies.ai.search import SearchResult  # needs numpy, which only the `ai` extra brings
 
 # what each source catalogue is called on the command line, its converter and a description
@@ -109,6 +110,9 @@ def _build_parser() -> argparse.ArgumentParser:
                                help="Description search: rank the matches by how well their observations' "
                                     "descriptions fit TEXT (German or English); needs --data-dir and the [ai] "
                                     "table of the config file (see the README)")
+    filter_parser.add_argument("--question", metavar="TEXT",
+                               help="a Question in German or English, turned by the chat model into the filter and "
+                                    "maybe a Description search; replaces --filter and --search")
     filter_parser.add_argument("--limit", type=int, metavar="N",
                                help="with --search, the most objects returned; default: [ai].limit")
     filter_parser.add_argument("--min-score", type=float, metavar="SCORE",
@@ -242,9 +246,12 @@ def _build_parser() -> argparse.ArgumentParser:
     site_parser.set_defaults(handler=_run_build_site)
 
     eval_parser = commands.add_parser(
-        "eval-ai", help="measure the chat model's judgements against the test set of a data directory")
+        "eval-ai", help="measure the chat model against the test sets of a data directory")
     eval_parser.add_argument("--data-dir", type=Path, required=True, metavar="DIR",
-                             help="the data directory, whose observations/owner/ai_eval/rerank.json is used")
+                             help="the data directory, whose observations/owner/ai_eval/rerank.json (judged "
+                                  "notes) and questions.json (Questions) are used, each when it is there")
+    eval_parser.add_argument("--only", choices=("rerank", "questions"),
+                             help="measure only this test set")
     _add_output_option(eval_parser)
     eval_parser.set_defaults(handler=_run_eval_ai)
 
@@ -464,19 +471,23 @@ def _run_filter(args: argparse.Namespace) -> int:
     """
     ai_config = _search_config(args)
     inputs = _inputs(args, args.catalogue, "--catalogue")
-    spec = _load_spec(args.filter)
+    spec = None if args.question else _load_spec(args.filter)
     sessions = load_sessions(inputs.sessions) if inputs.sessions else None
     collection, references, observers, community, double_star_findings, double_star_targets = _load(inputs, sessions)
-    findings = (_finding_index(args.data_dir, collection, references, observers, sessions, community,
-                               double_star_findings, double_star_targets)
-                if spec.finding else None)
-    matches = filter_objects(collection, spec, references, observers, findings)
+
+    def matching(found: FilterSpec) -> list[Match]:
+        findings = (_finding_index(args.data_dir, collection, references, observers, sessions, community,
+                                   double_star_findings, double_star_targets)
+                    if found.finding else None)
+        return filter_objects(collection, found, references, observers, findings)
+
     rubric = None
+    asked: dict[str, Any] | None = None
     if ai_config is None:
-        scored: list[tuple[Match, SearchResult | None]] = [(match, None) for match in matches]
+        assert spec is not None
+        scored: list[tuple[Match, SearchResult | None]] = [(match, None) for match in matching(spec)]
     else:
-        searched, rubric = _description_search(args, ai_config, collection, matches)
-        scored = [(result.match, result) for result in searched]
+        scored, rubric, asked = _ai_filter(args, ai_config, collection, observers, spec, matching)
     objects = [match.object.label if args.names_only else _match_json(match, references, result)
                for match, result in scored]
     skipped = sum(c.skipped for c in collection.catalogues)
@@ -490,8 +501,52 @@ def _run_filter(args: argparse.Namespace) -> int:
         notices.append(f"{community.failed} community row(s) not attached")
     if notices:
         print(f"faint-fuzzies: {'; '.join(notices)}; run 'faint-fuzzies validate' for details", file=sys.stderr)
-    _emit({"count": len(objects), **({"rubric": rubric} if rubric else {}), "objects": objects}, args.output)
+    _emit({"count": len(objects), **({"question": asked} if asked else {}),
+           **({"rubric": rubric} if rubric else {}), "objects": objects}, args.output)
     return EXIT_OK
+
+
+def _ai_filter(args: argparse.Namespace, ai_config: AiConfig, collection: Collection, observers: Observers | None,
+               spec: FilterSpec | None, matching: Callable[[FilterSpec], list[Match]]) -> tuple[
+                   list[tuple[Match, SearchResult | None]], dict[str, str] | None, dict[str, Any] | None]:
+    """`filter` with --search or --question: the spec (or the Question's), its matches, and those ranked by the
+    search text when there is one.
+
+    :param spec: the --filter spec; None with --question
+    :param matching: the matches of a spec
+    :returns: each match with its search result (None without a search text), the rubric the hits were judged
+        by (None without reranking), and the Question's answer (None without --question)
+    """
+    asked = None
+    with _ai_session(args, ai_config) as client:
+        search = args.search
+        if args.question:
+            asked, search = _asked(client, ai_config, args.question, collection, observers)
+            spec = FilterSpec.from_dict(asked["filter"])
+        assert spec is not None
+        matches = matching(spec)
+        if search is None:
+            return [(match, None) for match in matches], None, asked
+        searched, rubric = _description_search(args, client, ai_config, collection, matches, search)
+        return [(result.match, result) for result in searched], rubric, asked
+
+
+def _asked(client: Any, ai_config: AiConfig, question: str, collection: Collection,
+           observers: Observers | None) -> tuple[dict[str, Any], str | None]:
+    """What --question stands for, told on stderr: the filter, the search text and what could not be expressed.
+
+    :returns: the answer as the output's "question" carries it, and the search text (None for none)
+    :raises AiError: when the server fails, or the answer is not a valid filter or names an unknown object
+    """
+    from faint_fuzzies.ai.question import Context, ask
+    answer = ask(client, ai_config.chat_model, question, Context(collection, observers, _today()))
+    print(f"faint-fuzzies: filter {json.dumps(answer.filter, ensure_ascii=False)}"
+          + (f"; search \"{answer.text}\"" if answer.text else ""), file=sys.stderr)
+    if answer.ignored:
+        print(f"faint-fuzzies: warning: ignored {', '.join(f'"{part}"' for part in answer.ignored)} - "
+              "no criterion expresses it, so the result may be broader than asked", file=sys.stderr)
+    return {"asked": question, "filter": answer.filter, "text": answer.text, "ignored": list(answer.ignored)}, \
+        answer.text
 
 
 def _match_json(match: Match, references: References, searched: SearchResult | None) -> dict[str, Any]:
@@ -531,21 +586,31 @@ def _match_json(match: Match, references: References, searched: SearchResult | N
 
 
 def _search_config(args: argparse.Namespace) -> AiConfig | None:
-    """The AI settings `filter --search` needs, checked before anything is loaded; None without --search.
+    """The AI settings `filter --search` and `filter --question` need, checked before anything is loaded; None
+    without either.
 
     :param args: the parsed command-line arguments
     :returns: the [ai] table, with --limit and --min-score applied, or None
-    :raises UsageError: when --search is missing what it needs, or --limit/--min-score come without it
+    :raises UsageError: when --search or --question is missing what it needs, or --limit/--min-score come
+        without either
     """
-    if args.search is None:
+    if args.question is not None:
+        if args.filter is not None or args.search is not None:
+            raise UsageError("--question replaces --filter and --search; give one or the other")
+        if not args.question.strip():
+            raise UsageError("--question needs a text")
+        what = "--question"
+    elif args.search is not None:
+        if not args.search.strip():
+            raise UsageError("--search needs a text")
+        what = "--search"
+    else:
         if args.limit is not None or args.min_score is not None or args.no_rerank:
-            raise UsageError("--limit, --min-score and --no-rerank only go with --search")
+            raise UsageError("--limit, --min-score and --no-rerank only go with --search or --question")
         return None
-    if not args.search.strip():
-        raise UsageError("--search needs a text")
     if args.data_dir is None:
-        raise UsageError("--search needs --data-dir, where the description index is cached")
-    ai_config = _ai_settings("--search")
+        raise UsageError(f"{what} needs --data-dir, where the description index is cached")
+    ai_config = _ai_settings(what)
     if args.limit is not None and args.limit < 1:
         raise UsageError("--limit must be at least 1")
     if args.min_score is not None and not -1.0 <= args.min_score <= 1.0:
@@ -570,54 +635,102 @@ def _ai_settings(what: str) -> AiConfig:
 
 
 def _run_eval_ai(args: argparse.Namespace) -> int:
-    """Runs the "eval-ai" subcommand: the chat model's judgements of the test set, compared with the expected ones.
+    """Runs the "eval-ai" subcommand: the chat model's answers to the test sets, compared with the expected ones;
+    one report per test set, under its name.
 
     :param args: the parsed command-line arguments
     :returns: the process exit code
+    :raises UsageError: when the data directory has neither test set (or not the one --only names)
     """
     ai_config = _ai_settings("eval-ai")
     from faint_fuzzies.ai.client import AiClient
-    from faint_fuzzies.ai.evaluation import CASES_FILE, evaluate, read_cases
+    from faint_fuzzies.ai.evaluation import (
+        CASES_FILE,
+        QUESTIONS_FILE,
+        evaluate,
+        evaluate_questions,
+        read_cases,
+        read_questions,
+    )
     from faint_fuzzies.ai.index import CACHE_DIR
     from faint_fuzzies.ai.server import running_server
-    cases = read_cases(args.data_dir / CASES_FILE)
+    sets = {name: path for name, path in (("rerank", CASES_FILE), ("questions", QUESTIONS_FILE))
+            if args.only in (None, name) and (args.data_dir / path).is_file()}
+    if not sets:
+        wanted = [path for name, path in (("rerank", CASES_FILE), ("questions", QUESTIONS_FILE))
+                  if args.only in (None, name)]
+        raise UsageError(f"no test set in {args.data_dir}: looked for {', '.join(map(str, wanted))}")
+    cases = read_cases(args.data_dir / sets["rerank"]) if "rerank" in sets else None
+    questions = read_questions(args.data_dir / sets["questions"]) if "questions" in sets else None
+    context = _question_context(args.data_dir) if questions is not None else None
     report = step_reporter()
+    result: dict[str, Any] = {}
     with running_server(ai_config, args.data_dir / CACHE_DIR, report, models=(ai_config.chat_model,)):
-        result = evaluate(AiClient(ai_config.url, ai_config.timeout), ai_config.chat_model, cases, report)
+        client = AiClient(ai_config.url, ai_config.timeout)
+        if cases is not None:
+            result["rerank"] = evaluate(client, ai_config.chat_model, cases, report)
+        if questions is not None and context is not None:
+            result["questions"] = evaluate_questions(client, ai_config.chat_model, questions, context, report)
     _emit(result, args.output)
     return EXIT_OK
 
 
-def _description_search(args: argparse.Namespace, ai_config: AiConfig, collection: Collection,
-                        matches: list[Match]) -> tuple[list[SearchResult], dict[str, str] | None]:
-    """The matches ranked by --search, after bringing the description index up to date, and then reranked by
-    the chat model unless --no-rerank is given (see faint_fuzzies.ai.rerank). Reranking judges every hit
-    above its own lower pre-filter (rerank.MIN_SCORE) unless --min-score is given.
+def _question_context(data_dir: Path) -> QuestionContext:
+    """What the test Questions are asked against: the data directory, loaded as `filter --data-dir` loads it."""
+    from faint_fuzzies.ai.question import Context
+    found = discover(data_dir)
+    sessions = load_sessions(found.sessions) if found.sessions else None
+    collection, _references, observers, *_rest = _load(
+        Inputs(found.catalogues, found.sessions, found.observers, found.sources, data_dir), sessions)
+    return Context(collection, observers, _today())
+
+
+def _today() -> datetime.date:
+    """Today in the local time zone, which relative dates in a Question count from."""
+    return datetime.datetime.now().astimezone().date()
+
+
+@contextmanager
+def _ai_session(args: argparse.Namespace, ai_config: AiConfig) -> Generator[Any]:
+    """The model server, started for the time of the block when the config says how (see ai.server), and a
+    client for it. A Question needs the chat model; a search the embedding model, and the chat model too
+    unless --no-rerank is given."""
+    from faint_fuzzies.ai.client import AiClient
+    from faint_fuzzies.ai.index import CACHE_DIR
+    from faint_fuzzies.ai.server import running_server
+    chat = bool(args.question) or not args.no_rerank
+    with running_server(ai_config, args.data_dir / CACHE_DIR, step_reporter(),
+                        models=(ai_config.embedding_model,) + ((ai_config.chat_model,) if chat else ())):
+        yield AiClient(ai_config.url, ai_config.timeout)
+
+
+def _description_search(args: argparse.Namespace, client: Any, ai_config: AiConfig, collection: Collection,
+                        matches: list[Match], search: str) -> tuple[list[SearchResult], dict[str, str] | None]:
+    """The matches ranked by the search text, after bringing the description index up to date, and then
+    reranked by the chat model unless --no-rerank is given (see faint_fuzzies.ai.rerank). Reranking judges
+    every hit above its own lower pre-filter (rerank.MIN_SCORE) unless --min-score is given.
 
     :param args: the parsed command-line arguments
+    :param client: the model server's client (see _ai_session)
     :param ai_config: the AI settings
     :param collection: the loaded collection, all of whose Descriptions are indexed
     :param matches: the filter's matches
+    :param search: the search text
     :returns: the matches with hits, best first, and the rubric they were judged by (None without reranking)
     """
     from faint_fuzzies.ai import rerank
-    from faint_fuzzies.ai.client import AiClient
-    from faint_fuzzies.ai.index import CACHE_DIR, update_index
+    from faint_fuzzies.ai.index import update_index
     from faint_fuzzies.ai.search import query_vector, rank
-    from faint_fuzzies.ai.server import running_server
-    client = AiClient(ai_config.url, ai_config.timeout)
     report = step_reporter()
-    with running_server(ai_config, args.data_dir / CACHE_DIR, report,
-                        models=(ai_config.embedding_model,) + (() if args.no_rerank else (ai_config.chat_model,))):
-        index = update_index(args.data_dir, collection.objects, client, ai_config.embedding_model, report)
-        query = query_vector(client, ai_config.embedding_model, args.search)
-        if args.no_rerank:
-            return rank(matches, query, index, ai_config.min_score, ai_config.limit), None
-        reranked = rerank.rerank(client, ai_config, args.search,
-                                 rank(matches, query, index,
-                                      rerank.MIN_SCORE if args.min_score is None else args.min_score, len(matches)),
-                                 report)
-        return reranked.results, reranked.rubric
+    index = update_index(args.data_dir, collection.objects, client, ai_config.embedding_model, report)
+    query = query_vector(client, ai_config.embedding_model, search)
+    if args.no_rerank:
+        return rank(matches, query, index, ai_config.min_score, ai_config.limit), None
+    reranked = rerank.rerank(client, ai_config, search,
+                             rank(matches, query, index,
+                                  rerank.MIN_SCORE if args.min_score is None else args.min_score, len(matches)),
+                             report)
+    return reranked.results, reranked.rubric
 
 
 def _reference_json(reference: Object) -> dict[str, Any]:

@@ -1,12 +1,25 @@
-"""Measuring the reranking against a test set, with the chat model of tests/unit/ai/fakes.py; the cases are
-written to a temporary file."""
+"""Measuring the reranking and the Questions against test sets, with the chat model of tests/unit/ai/fakes.py;
+the cases are written to a temporary file."""
 import json
+from datetime import date
+from types import SimpleNamespace
 
 import pytest
 
-from faint_fuzzies.ai.evaluation import evaluate, read_cases
+from faint_fuzzies.ai.evaluation import evaluate, evaluate_questions, read_cases, read_questions
+from faint_fuzzies.ai.question import Context
 from faint_fuzzies.domain.findings import CatalogueError
+from faint_fuzzies.domain.names import set_object_name_abbreviations
 from tests.unit.ai.fakes import FakeClient
+from tests.unit.builders import fake_collection
+
+
+@pytest.fixture(autouse=True)
+def no_abbreviations():
+    """Abbreviations are global; other tests leave a data directory's behind."""
+    set_object_name_abbreviations([])
+    yield
+    set_object_name_abbreviations([])
 
 
 def case(note, expected, search="Staubband"):
@@ -53,3 +66,60 @@ def test_an_unusable_test_set_is_an_error(tmp_path, content, message):
         path.write_text(json.dumps(content), encoding="utf-8")
     with pytest.raises(CatalogueError, match=message):
         read_cases(path)
+
+
+QUESTION_COLLECTION = fake_collection(["own.json"], [SimpleNamespace(names=("Messier 31", "M31"), groups=())])
+
+
+def question(text, expected_filter, expected_text=None):
+    return {"question": text, "filter": expected_filter, "text": expected_text}
+
+
+def asked_with(answers, cases):
+    """The report on `cases`, the fake model answering the n-th question with answers[n]."""
+    client = FakeClient()
+    replies = iter(answers)
+    original = client.chat_json
+    client.chat_json = lambda model, messages, schema: next(replies) if "filter" in schema["properties"] \
+        else original(model, messages, schema)
+    return evaluate_questions(client, "chat", cases, Context(QUESTION_COLLECTION, None, date(2026, 11, 21)))
+
+
+def test_a_question_agrees_when_its_filter_is_the_same_whatever_the_order_and_form():
+    report = asked_with([{"filter": {"type": ["**", "Gx"], "aperture": [None, 102.0], "name_group": ["m 31"]},
+                          "text": "Details", "ignored": []}],
+                        [question("q", {"type": ["Gx", "**"], "aperture": [None, 102], "name_group": "M31"},
+                                  "Details gesehen")])
+    assert (report["cases"], report["agree"], report["mismatches"]) == (1, 1, [])
+
+
+def test_a_range_is_not_the_same_the_other_way_round():
+    report = asked_with([{"filter": {"aperture": [102, None]}, "text": None, "ignored": []}],
+                        [question("q", {"aperture": [None, 102]})])
+    assert report["filters_agree"] == 0 and report["texts_agree"] == 1
+    assert report["mismatches"][0]["got"]["filter"] == {"aperture": [102, None]}
+
+
+def test_a_text_only_has_to_be_there_or_not():
+    report = asked_with([{"filter": {}, "text": "Spiralarme", "ignored": []},
+                         {"filter": {}, "text": None, "ignored": []}],
+                        [question("a", {}, "Details gesehen"), question("b", {}, "Farben")])
+    assert (report["agree"], report["texts_agree"]) == (1, 1)
+    assert report["mismatches"][0]["question"] == "b"
+
+
+def test_a_rejected_answer_is_a_mismatch_with_its_error():
+    report = asked_with([{"filter": {"type": ["Galaxy"]}, "text": None, "ignored": []}],
+                        [question("q", {"type": ["Gx"]})])
+    assert report["agree"] == 0 and "not valid" in report["mismatches"][0]["error"]
+
+
+@pytest.mark.parametrize("content, message", [
+    pytest.param([{"question": "q", "text": None}], "needs a question, a filter and a text", id="no filter"),
+    pytest.param([{"question": "q", "filter": {}}], "needs a question, a filter and a text", id="no text"),
+])
+def test_an_unusable_question_set_is_an_error(tmp_path, content, message):
+    path = tmp_path / "questions.json"
+    path.write_text(json.dumps(content), encoding="utf-8")
+    with pytest.raises(CatalogueError, match=message):
+        read_questions(path)
