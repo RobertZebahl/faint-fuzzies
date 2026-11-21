@@ -80,7 +80,7 @@ def asked_with(answers, cases):
     client = FakeClient()
     replies = iter(answers)
     original = client.chat_json
-    client.chat_json = lambda model, messages, schema: next(replies) if "filter" in schema["properties"] \
+    client.chat_json = lambda model, messages, schema, max_tokens=None: next(replies) if "filter" in schema["properties"] \
         else original(model, messages, schema)
     return evaluate_questions(client, "chat", cases, Context(QUESTION_COLLECTION, None, date(2026, 11, 21)))
 

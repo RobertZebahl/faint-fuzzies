@@ -18,3 +18,7 @@ class AiHttpError(AiError):
         super().__init__(message)
         self.status = status
         self.detail = detail
+
+
+class AiAnswerError(AiError):
+    """The chat model's answer is not the JSON that was asked for - cut off at its token limit, say."""

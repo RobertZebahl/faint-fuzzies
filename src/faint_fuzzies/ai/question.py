@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Any
 
-from faint_fuzzies.ai import AiError
+from faint_fuzzies.ai import AiAnswerError, AiError
 from faint_fuzzies.ai.client import AiClient
 from faint_fuzzies.domain.collection import Collection
 from faint_fuzzies.domain.filters import FilterKey, FilterSpec, FilterSpecError
@@ -23,6 +23,7 @@ from faint_fuzzies.domain.observer import Observers, Scope
 from faint_fuzzies.domain.seen import SeenStatus
 
 K = FilterKey
+MAX_TOKENS = 800  # an answer with every criterion null is about 200 tokens
 
 # The criteria a Question can use (the others stay with --filter: they are about the data's upkeep, or regular
 # expressions, or rarely asked for), each with what the model is told about it.
@@ -169,9 +170,12 @@ def ask(client: AiClient, model: str, question: str, context: Context) -> Answer
         projects=", ".join(LISTS), catalogues=", ".join(catalogues) or "none",
         observers=", ".join(f"{o.id}: {o.firstname} {o.surname}" for o in known) or "none",
         examples="\n".join(f"Question: {q}\nAnswer: {json.dumps(a, ensure_ascii=False)}" for q, a in EXAMPLES))
-    raw = client.chat_json(model, [{"role": "system", "content": prompt},
-                                   {"role": "user", "content": f"Question: {question}"}],
-                           schema(catalogues, [o.id for o in known]))
+    try:
+        raw = client.chat_json(model, [{"role": "system", "content": prompt},
+                                       {"role": "user", "content": f"Question: {question}"}],
+                               schema(catalogues, [o.id for o in known]), MAX_TOKENS)
+    except AiAnswerError as exc:
+        raise QuestionError(str(exc)) from exc
     return answer_of(raw, context.collection)
 
 

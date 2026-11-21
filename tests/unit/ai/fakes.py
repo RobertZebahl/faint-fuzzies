@@ -38,7 +38,7 @@ class FakeClient:
         self.embedded.extend(texts)
         return [keyword_vector(text, self.extra) for text in texts]
 
-    def chat_json(self, model, messages, schema):
+    def chat_json(self, model, messages, schema, max_tokens=None):
         prompt = messages[-1]["content"]
         if "filter" in schema.get("properties", {}):
             self.questions.append(messages)

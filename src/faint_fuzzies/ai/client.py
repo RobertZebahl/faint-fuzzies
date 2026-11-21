@@ -5,7 +5,7 @@ import urllib.error
 import urllib.request
 from typing import Any
 
-from faint_fuzzies.ai import AiError, AiHttpError
+from faint_fuzzies.ai import AiAnswerError, AiError, AiHttpError
 
 THINKING = re.compile(r"<think>.*?</think>", re.DOTALL)
 
@@ -43,7 +43,8 @@ class AiClient:
             raise AiError(f"the model server returned {len(vectors)} embeddings for {len(texts)} texts")
         return vectors
 
-    def chat_json(self, model: str, messages: list[dict[str, str]], schema: dict[str, Any]) -> Any:
+    def chat_json(self, model: str, messages: list[dict[str, str]], schema: dict[str, Any],
+                  max_tokens: int | None = None) -> Any:
         """The chat model's answer to `messages`, held to the JSON `schema` (structured output), deterministic
         as far as the server allows.
 
@@ -55,14 +56,16 @@ class AiClient:
         :param model: the chat model's name, as the server knows it
         :param messages: the conversation, as {"role": ..., "content": ...} dicts
         :param schema: the JSON schema the answer must follow
+        :param max_tokens: the most tokens the answer may have, so one that does not end (endless whitespace, a
+            known failure of structured output) is cut off rather than running into the timeout; None for no limit
         :returns: the parsed answer
-        :raises AiError: when the server cannot be reached or the answer is not JSON
+        :raises AiError: when the server cannot be reached (AiAnswerError: when the answer is not JSON)
         """
         payload = {
             "model": model, "messages": messages, "temperature": 0, "stream": False,
             "response_format": {"type": "json_schema",
                                 "json_schema": {"name": "answer", "schema": schema, "strict": True}},
-        }
+        } | ({"max_tokens": max_tokens} if max_tokens else {})
         try:
             answer = self._post("/chat/completions", payload | ({"reasoning_effort": "none"} if self._no_reasoning
                                                                  else {}))
@@ -80,7 +83,8 @@ class AiClient:
         try:
             return json.loads(content)
         except json.JSONDecodeError as exc:
-            raise AiError(f"the chat model did not answer with JSON: {content[:200]!r}") from exc
+            raise AiAnswerError(f"the chat model did not answer with JSON ({len(content)} characters, cut off at "
+                                f"its token limit?): {content[:200]!r}") from exc
 
     def answers(self) -> bool:
         """Whether a server answers at the URL at all - any HTTP answer counts, even an error status, since
@@ -105,6 +109,8 @@ class AiClient:
                               exc.code, detail) from exc
         except (TimeoutError, urllib.error.URLError, ConnectionError) as exc:
             reason = getattr(exc, "reason", exc)
+            if isinstance(exc, TimeoutError) or isinstance(reason, TimeoutError):
+                raise AiError(f"the model server at {self.url} gave no answer within {self.timeout:g} s") from exc
             raise AiError(f"cannot reach the model server at {self.url}: {reason}") from exc
         try:
             return json.loads(body)

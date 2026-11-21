@@ -6,7 +6,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import pytest
 
-from faint_fuzzies.ai import AiError
+from faint_fuzzies.ai import AiAnswerError, AiError
 from faint_fuzzies.ai.client import AiClient
 
 
@@ -19,6 +19,8 @@ def server():
             request = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
             state["requests"].append((self.path, request))
             refuse = state.get("refuse_reasoning") and "reasoning_effort" in request
+            if state.get("slow"):
+                threading.Event().wait(state["slow"])
             if refuse:
                 body = '{"error": "unsupported parameter: reasoning_effort"}'
             elif self.path.endswith("/chat/completions") and state["body"] is None:
@@ -110,3 +112,22 @@ def test_another_error_of_a_chat_is_not_retried(server):
     with pytest.raises(AiError, match="404"):
         AiClient(server["url"], 5).chat_json("chat", [{"role": "user", "content": "x"}], {})
     assert len(server["requests"]) == 1
+
+
+def test_the_token_limit_is_sent_only_when_given(server):
+    client = AiClient(server["url"], 5)
+    client.chat_json("chat", [{"role": "user", "content": "x"}], {}, max_tokens=800)
+    client.chat_json("chat", [{"role": "user", "content": "x"}], {})
+    assert [request.get("max_tokens") for _path, request in server["requests"]] == [800, None]
+
+
+def test_an_answer_cut_off_is_an_answer_error_with_its_length_and_start(server):
+    server["chat"] = '{"filter":' + "\n" * 300 + '"'
+    with pytest.raises(AiAnswerError, match=r"did not answer with JSON \(311 characters.*'\{\"filter\":\\n"):
+        AiClient(server["url"], 5).chat_json("chat", [{"role": "user", "content": "x"}], {})
+
+
+def test_a_server_that_takes_too_long_is_said_to_give_no_answer(server):
+    server["slow"] = 1.5
+    with pytest.raises(AiError, match=r"gave no answer within 0.5 s"):
+        AiClient(server["url"], 0.5).chat_json("chat", [{"role": "user", "content": "x"}], {})

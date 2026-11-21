@@ -5,8 +5,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from faint_fuzzies.ai import AiError
-from faint_fuzzies.ai.question import Answer, Context, answer_of, ask, resolve_names, schema
+from faint_fuzzies.ai import AiAnswerError, AiError
+from faint_fuzzies.ai.question import Answer, Context, QuestionError, answer_of, ask, resolve_names, schema
 from faint_fuzzies.domain.names import set_object_name_abbreviations
 from faint_fuzzies.domain.observer import Observer, Observers, Scope
 from tests.unit.ai.fakes import FakeClient
@@ -113,3 +113,14 @@ def test_the_schema_offers_only_the_known_values():
 def test_observers_are_listed_once_whatever_their_aliases():
     observers = Observers("o.json", [Observer(id="anna", firstname="A", surname="E", aliases=("anna-old",))], [])
     assert [o.id for o in observers] == ["anna"]
+
+
+def test_an_answer_that_is_not_json_is_a_question_error():
+    client = FakeClient()
+
+    def cut_off(model, messages, schema, max_tokens=None):
+        assert max_tokens == 800
+        raise AiAnswerError("the chat model did not answer with JSON")
+    client.chat_json = cut_off
+    with pytest.raises(QuestionError, match="did not answer with JSON"):
+        ask(client, "chat", "Galaxien", Context(COLLECTION, OBSERVERS, date(2026, 11, 21)))
