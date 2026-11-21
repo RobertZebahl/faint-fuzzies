@@ -98,7 +98,10 @@ def test_the_prompt_has_the_date_the_observers_and_the_catalogues():
 
 
 def test_the_schema_offers_only_the_known_values():
-    filter_properties = schema(["own.json"], ["anna"])["properties"]["filter"]["properties"]
+    filter_schema = schema(["own.json"], ["anna"])["properties"]["filter"]
+    filter_properties = {key: value["anyOf"][0] for key, value in filter_schema["properties"].items()}
+    assert filter_schema["required"] == list(filter_schema["properties"])
+    assert all(value["anyOf"][1] == {"type": "null"} for value in filter_schema["properties"].values())
     assert filter_properties["observer"]["items"]["enum"] == ["anna"]
     assert filter_properties["catalogue"]["items"]["enum"] == ["own.json"]
     assert "UMa" in filter_properties["constellation"]["items"]["enum"]

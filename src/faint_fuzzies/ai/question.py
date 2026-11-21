@@ -65,7 +65,8 @@ TYPE_NAMES = {
 
 INSTRUCTIONS = """You turn a question an amateur astronomer asks about their observing records, in German or \
 English, into a filter and a search text. Answer with JSON:
-- "filter": the criteria the question asks for, and only those. Leave out every criterion it does not ask for.
+- "filter": every criterion, each null unless the question asks for it. Most questions ask for one to three; \
+give a value only for what the question says.
 - "text": what the observation notes must say, for a question about what was seen or noticed ("Details", \
 "Farben", "spiral arms seen"), in the question's language and without the filter's part; null when the \
 question asks for nothing in the notes.
@@ -100,7 +101,7 @@ Catalogues: {catalogues}
 
 Observers (id: name): {observers}
 
-Examples:
+Examples (their filters show only the criteria that are not null):
 {examples}"""
 
 EXAMPLES = (
@@ -255,8 +256,11 @@ def schema(catalogues: list[str], observer_ids: list[str]) -> dict[str, Any]:
     return {
         "type": "object",
         "properties": {
-            "filter": {"type": "object", "properties": {str(key): value for key, value in properties.items()},
-                       "additionalProperties": False},
+            # every criterion required but nullable: the model has to decide on each, rather than adding
+            # criteria freely (it did: has_sketch, a date up to today, for questions asking for neither)
+            "filter": {"type": "object",
+                       "properties": {str(key): {"anyOf": [value, {"type": "null"}]} for key, value in properties.items()},
+                       "required": [str(key) for key in properties], "additionalProperties": False},
             "text": {"type": ["string", "null"]},
             "ignored": {"type": "array", "items": {"type": "string"}},
         },
