@@ -994,9 +994,10 @@ for two things at once. So, unless `--no-rerank` is given, the chat model judges
 sentence each on what counts as `yes`, `partly` and `no`, since one set of rules cannot fit a search for
 structures and one for colours alike. It first tells which kind of search it is: one for a Detail or one for
 colours get a hand-written rubric (built on the definitions in [CONTEXT.md](CONTEXT.md)); any other kind gets a
-rubric the model writes for it, which is less reliable. It then reads the notes of the 60 best hits by score
-(every hit from a score of 0.55 on is a candidate, or from `--min-score`) in batches of 10 and judges each by that
-rubric: `yes` (seen), `partly` (only in traces, or only part of it) or `no`. A note kept twice (the same
+rubric the model writes for it, which is less reliable. It then reads 40 notes in batches of 10 (every hit from a score
+of 0.55 on is a candidate, or from `--min-score`): the best-scoring note of every Object first, the best first, and
+an Object's further notes only after every Object has had one, since one note is enough to find it. It judges each
+by that rubric: `yes` (seen), `partly` (only in traces, or only part of it) or `no`. A note kept twice (the same
 observation with and without its English translation) is judged once. For a Detail or colours, only notes with a
 word for one (German or English: "Staubband", "Spiralarm", "dust lane"; "gelblich", "Farbkontrast", "bluish") are
 candidates: the embeddings rank notes by what they share with the search text, the galaxy or the components,

@@ -202,3 +202,17 @@ def test_the_detail_words_cover_german_and_english(note):
                                   "Mit dunklerem Himmel mehr.", "Heller Nebelfleck mit Kern.", "Warm night, well seen."])
 def test_notes_without_a_detail_are_no_detail_candidates(note):
     assert not rerank_module.CANDIDATE_WORDS["detail"].search(note)
+
+
+def test_every_objects_best_note_is_judged_before_any_second_one(monkeypatch):
+    monkeypatch.setattr(rerank_module, "CANDIDATES", 3)
+    client = FakeClient()
+    results = rerank(client, config(), "Staubband", [
+        result("M82", ("Staubband eins.", 0.80), ("Staubband zwei.", 0.79), ("Staubband drei.", 0.78)),
+        result("NGC891", ("Staubband deutlich.", 0.60)),
+        result("NGC3628", ("Staubband schwach.", 0.55)),
+    ])
+    assert re.findall(r"^\d+\. (.*)$", client.chats[0], re.MULTILINE) == [
+        "Staubband eins.", "Staubband deutlich.", "Staubband schwach."]
+    assert labels(results) == ["M82", "NGC891", "NGC3628"]
+    assert texts(results[0]) == ["Staubband eins."]

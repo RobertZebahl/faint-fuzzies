@@ -13,7 +13,7 @@ from faint_fuzzies.config import AiConfig
 
 YES, PARTLY, NO = "yes", "partly", "no"
 VERDICTS = (YES, PARTLY, NO)
-CANDIDATES = 60   # the most notes judged per search
+CANDIDATES = 40   # the most notes judged per search (60 took 24-29 s on an RX 6600)
 BATCH_SIZE = 10   # notes per request
 MIN_SCORE = 0.55  # the embedding pre-filter: below it, a text is not worth asking about
 TEXT_LENGTH = 600
@@ -207,23 +207,31 @@ def rerank(client: AiClient, config: AiConfig, query: str, results: list[SearchR
 
 
 def _candidates(results: list[SearchResult], rubric: dict[str, str]) -> dict[str, list[Hit]]:
-    """The hits worth judging, grouped by their note so each note is judged once: the hits of the CANDIDATES
-    best-scoring notes, of only those notes with a word of CANDIDATE_WORDS when the rubric's kind has any.
-    Notes are the same when their first text is (the same observation is often kept twice, once with and once
-    without its English translation).
+    """The hits worth judging, grouped by their note so each note is judged once: CANDIDATES notes, of only
+    those with a word of CANDIDATE_WORDS when the rubric's kind has any. Every Object's best-scoring note comes
+    before any Object's second one, and so on: one note seen to fit is enough to find an Object, and an Object
+    observed many times would otherwise take most of the candidates (M 82 had 13 of 60). Notes are the same
+    when their first text is (the same observation is often kept twice, once with and once without its English
+    translation).
 
-    :returns: the hits of each note, best first, the best note first
+    :returns: the hits of each note, in the order they are to be judged
     """
     words = CANDIDATE_WORDS.get(rubric.get("kind", ""))
-    groups: dict[str, list[Hit]] = {}
-    for hit in sorted((hit for result in results for hit in result.hits), key=lambda hit: -hit.score):
-        texts = description_texts(hit.found.observation)
-        key = " ".join(texts[0].split()) if texts else ""
-        if key in groups:
-            groups[key].append(hit)
-        elif len(groups) < CANDIDATES and (words is None or words.search(" ".join(texts))):
-            groups[key] = [hit]
-    return groups
+    hits_of: dict[str, list[Hit]] = {}
+    ranked: list[tuple[int, float, str]] = []  # (the note's place among its Object's notes, score, note)
+    for result in results:
+        place = 0
+        for hit in result.hits:  # best first
+            texts = description_texts(hit.found.observation)
+            key = " ".join(texts[0].split()) if texts else ""
+            if key in hits_of:
+                hits_of[key].append(hit)
+            elif words is None or words.search(" ".join(texts)):
+                hits_of[key] = [hit]
+                ranked.append((place, -hit.score, key))
+                place += 1
+    ranked.sort(key=lambda entry: entry[:2])
+    return {key: sorted(hits_of[key], key=lambda hit: -hit.score) for _place, _score, key in ranked[:CANDIDATES]}
 
 
 def write_rubric(client: AiClient, model: str, query: str) -> dict[str, str]:
