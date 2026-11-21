@@ -150,8 +150,8 @@ def _outcome(client: AiClient, model: str, case: dict[str, Any], context: Contex
     same_text = (answer.text is None) == (case["text"] is None)
     if same_filter and same_text:
         return True, True, None
-    return same_filter, same_text, {**case, "got": {"filter": answer.filter, "text": answer.text,
-                                                    "ignored": list(answer.ignored)}}
+    return same_filter, same_text, {**case, "got": {"criteria": list(answer.criteria), "filter": answer.filter,
+                                                    "text": answer.text, "ignored": list(answer.ignored)}}
 
 
 def comparable(spec: dict[str, Any], collection: Collection) -> dict[str, Any]:

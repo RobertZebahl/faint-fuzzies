@@ -1,6 +1,8 @@
 """Questions: a request in natural language, German or English, turned by the chat model into a FilterSpec and,
 optionally, the text of a Description search (see docs/adr/0001-local-ai-via-external-server-outside-filterspec.md).
-The model only fills in a JSON schema built from the criteria that make sense in a Question; what it cannot
+It takes two requests: the model first picks which of the criteria that make sense in a Question it names, then
+fills in a JSON schema of only those - offered every criterion at once, an 8B model added some never asked for
+(has_sketch, a date up to today), and made to answer each one it filled them all in. What no criterion can
 express it lists as ignored. Object names it passes on as written, and the tool finds them among the real names;
 the answer is checked like any filter, and one that is not valid is rejected, never guessed at."""
 import difflib
@@ -23,12 +25,13 @@ from faint_fuzzies.domain.observer import Observers, Scope
 from faint_fuzzies.domain.seen import SeenStatus
 
 K = FilterKey
-MAX_TOKENS = 800  # an answer with every criterion null is about 200 tokens
+MAX_TOKENS = 800  # an answer is rarely 100 tokens: more is one that does not end
+CHOICE_TOKENS = 200
 
 # The criteria a Question can use (the others stay with --filter: they are about the data's upkeep, or regular
 # expressions, or rarely asked for), each with what the model is told about it.
 CRITERIA: dict[FilterKey, str] = {
-    K.TYPE: "object types (codes below)",
+    K.TYPE: "object types: galaxy, double star, open or globular cluster, nebula, ...",
     K.CONSTELLATION: "IAU constellation abbreviations, e.g. \"UMa\" for Großer Bär / Ursa Major",
     K.MAGNITUDE: "[min, max] magnitude; brighter is smaller: \"brighter than 10\" is [null, 10]",
     K.MAGNITUDE_DELTA: "[min, max] magnitude difference of a double star's two components",
@@ -66,7 +69,7 @@ TYPE_NAMES = {
 
 INSTRUCTIONS = """You turn a question an amateur astronomer asks about their observing records, in German or \
 English, into a filter and a search text. Answer with JSON:
-- "filter": the criteria the question asks for, and only those. Leave out every criterion it does not ask for.
+- "filter": a value for each of the criteria below, as the question gives it.
 - "text": what the observation notes must say, for a question about what was seen or noticed ("Details", \
 "Farben", "spiral arms seen"), in the question's language and without the filter's part; null when the \
 question asks for nothing in the notes.
@@ -104,7 +107,24 @@ Observers (id: name): {observers}
 Examples:
 {examples}"""
 
-EXAMPLES = (
+CHOICE_INSTRUCTIONS = """You read a question an amateur astronomer asks about their observing records, in German \
+or English, and name the filter criteria it asks for, from the list below. Name only those the question states; \
+most questions name one to three, and many words name none (they are about what was seen in the notes, or about \
+nothing a criterion can express). Answer with JSON: {{"criteria": [...]}}.
+- "my", "meine", "ich" (the user's own observations): scope.
+- thin or superthin galaxies: size_ratio. A small telescope, inches, millimetres: aperture. Binoculars, \
+Fernglas, naked eye: optic_type.
+- How the object went (easy, averted vision, failed): public_grade; private_grade only when the question asks \
+for private or personal observations ("privat", "persönlich", "private", "personal").
+- A year, a date, "since", "last year": date. A season or month alone is no criterion.
+
+Criteria:
+{criteria}
+
+Examples:
+{examples}"""
+
+EXAMPLES: tuple[tuple[str, dict[str, Any]], ...] = (
     ("Welche Galaxien zeigten Details mit bis zu 4 Zoll Öffnung?",
      {"filter": {"type": ["Gx"], "aperture": [None, 102]}, "text": "Details gesehen", "ignored": []}),
     ("Double stars in Cygnus closer than 3 arcseconds that I split",
@@ -143,10 +163,12 @@ class Answer:
     :ivar filter: the FilterSpec, in its JSON form, its object names those of the data
     :ivar text: the text of the Description search, None when the Question asks for none
     :ivar ignored: the parts of the Question no criterion could express, in its own words
+    :ivar criteria: the criteria the model picked in its first step (see choose_criteria)
     """
     filter: dict[str, Any]
     text: str | None
     ignored: tuple[str, ...]
+    criteria: tuple[str, ...] = ()
 
 
 def ask(client: AiClient, model: str, question: str, context: Context) -> Answer:
@@ -162,9 +184,10 @@ def ask(client: AiClient, model: str, question: str, context: Context) -> Answer
     """
     catalogues = [catalogue.name for catalogue in context.collection.catalogues]
     known = sorted(context.observers or (), key=lambda o: o.id)
+    chosen = choose_criteria(client, model, question)
+    criteria = "\n".join(f"- {key}: {CRITERIA[key]}" for key in chosen) or "none: the filter stays empty"
     prompt = INSTRUCTIONS.format(
-        today=context.today.isoformat(),
-        criteria="\n".join(f"- {key}: {about}" for key, about in CRITERIA.items()),
+        today=context.today.isoformat(), criteria=criteria,
         types=", ".join(f"{code} {name}" for code, name in TYPE_NAMES.items()),
         projects=", ".join(LISTS), catalogues=", ".join(catalogues) or "none",
         observers=", ".join(f"{o.id}: {o.firstname} {o.surname}" for o in known) or "none",
@@ -172,10 +195,37 @@ def ask(client: AiClient, model: str, question: str, context: Context) -> Answer
     try:
         raw = client.chat_json(model, [{"role": "system", "content": prompt},
                                        {"role": "user", "content": f"Question: {question}"}],
-                               schema(catalogues, [o.id for o in known]), MAX_TOKENS)
+                               schema(catalogues, [o.id for o in known], chosen), MAX_TOKENS)
     except AiAnswerError as exc:
         raise QuestionError(str(exc)) from exc
-    return answer_of(raw, context.collection)
+    answer = answer_of(raw, context.collection)
+    return Answer(answer.filter, answer.text, answer.ignored, tuple(str(key) for key in chosen))
+
+
+def choose_criteria(client: AiClient, model: str, question: str) -> tuple[FilterKey, ...]:
+    """The criteria `question` names, picked by the chat model from CRITERIA (the first of a Question's two
+    requests, see the module docstring); one it names twice counts once.
+
+    :raises AiError: when the server fails (QuestionError: when the answer is not JSON)
+    """
+    prompt = CHOICE_INSTRUCTIONS.format(
+        criteria="\n".join(f"- {key}: {about}" for key, about in CRITERIA.items()),
+        examples="\n".join(f"Question: {q}\nAnswer: {json.dumps({'criteria': list(a['filter'])})}"
+                           for q, a in EXAMPLES))
+    choice_schema = {"type": "object",
+                     "properties": {"criteria": {"type": "array", "items": {"type": "string",
+                                                                            "enum": [str(k) for k in CRITERIA]}}},
+                     "required": ["criteria"], "additionalProperties": False}
+    try:
+        raw = client.chat_json(model, [{"role": "system", "content": prompt},
+                                       {"role": "user", "content": f"Question: {question}"}],
+                               choice_schema, CHOICE_TOKENS)
+    except AiAnswerError as exc:
+        raise QuestionError(str(exc)) from exc
+    picked = raw.get("criteria") if isinstance(raw, dict) else None
+    names = {str(key): key for key in CRITERIA}
+    return tuple(dict.fromkeys(names[item] for item in picked if isinstance(item, str) and item in names)) \
+        if isinstance(picked, list) else ()
 
 
 def answer_of(raw: Any, collection: Collection) -> Answer:
@@ -229,8 +279,10 @@ def resolve_names(names: Iterable[Any], collection: Collection) -> list[str]:
     return resolved
 
 
-def schema(catalogues: list[str], observer_ids: list[str]) -> dict[str, Any]:
-    """The JSON schema of the answer: every criterion optional, its values restricted to the known ones."""
+def schema(catalogues: list[str], observer_ids: list[str], keys: Iterable[FilterKey] = tuple(CRITERIA)) -> dict[
+        str, Any]:
+    """The JSON schema of the answer: a value for each of `keys` (the criteria picked, see choose_criteria) and
+    no other criterion, its values restricted to the known ones."""
     def choices(values: Iterable[str]) -> dict[str, Any]:
         return {"type": "array", "items": {"type": "string", "enum": list(values)}}
 
@@ -256,11 +308,12 @@ def schema(catalogues: list[str], observer_ids: list[str]) -> dict[str, Any]:
         del properties[K.CATALOGUE]
     if not observer_ids:
         del properties[K.OBSERVER]
+    wanted = [key for key in keys if key in properties]
     return {
         "type": "object",
         "properties": {
-            "filter": {"type": "object", "properties": {str(key): value for key, value in properties.items()},
-                       "additionalProperties": False},
+            "filter": {"type": "object", "properties": {str(key): properties[key] for key in wanted},
+                       "required": [str(key) for key in wanted], "additionalProperties": False},
             "text": {"type": ["string", "null"]},
             "ignored": {"type": "array", "items": {"type": "string"}},
         },

@@ -32,8 +32,8 @@ def test_the_question_becomes_the_filter(capsys, fake):
     code, result, err = ask(capsys, fake, {"filter": {"type": ["GC"]}, "text": None, "ignored": []})
     assert code == cli.EXIT_OK
     assert [o["names"][0] for o in result["objects"]] == ["Messier 13"]
-    assert result["question"] == {"asked": "Kugelsternhaufen", "filter": {"type": ["GC"]}, "text": None,
-                                  "ignored": []}
+    assert result["question"] == {"asked": "Kugelsternhaufen", "criteria": ["type"], "filter": {"type": ["GC"]},
+                                  "text": None, "ignored": []}
     assert 'filter {"type": ["GC"]}' in err
     assert "score" not in result["objects"][0]
 

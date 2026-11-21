@@ -40,13 +40,13 @@ def asked(answer, question="Welche Galaxien zeigten Details mit bis zu 4 Zoll?")
 def test_the_answer_gives_the_filter_and_the_search_text():
     _client, answer = asked({"filter": {"type": ["Gx"], "aperture": [None, 102]}, "text": "Details  gesehen",
                              "ignored": []})
-    assert answer == Answer({"type": ["Gx"], "aperture": [None, 102]}, "Details gesehen", ())
+    assert answer == Answer({"type": ["Gx"], "aperture": [None, 102]}, "Details gesehen", (), ("type", "aperture"))
 
 
 def test_criteria_that_ask_for_nothing_are_dropped():
     _client, answer = asked({"filter": {"type": ["Gx"], "constellation": [], "magnitude": [None, None],
                                         "observer": None}, "text": " ", "ignored": ["", "im Winter"]})
-    assert answer == Answer({"type": ["Gx"]}, None, ("im Winter",))
+    assert (answer.filter, answer.text, answer.ignored) == ({"type": ["Gx"]}, None, ("im Winter",))
 
 
 @pytest.mark.parametrize("written, real", [
@@ -116,8 +116,44 @@ def test_an_answer_that_is_not_json_is_a_question_error():
     client = FakeClient()
 
     def cut_off(model, messages, schema, max_tokens=None):
-        assert max_tokens == 800
+        assert max_tokens == 200  # the first step's limit
         raise AiAnswerError("the chat model did not answer with JSON")
     client.chat_json = cut_off
     with pytest.raises(QuestionError, match="did not answer with JSON"):
         ask(client, "chat", "Galaxien", Context(COLLECTION, OBSERVERS, date(2026, 11, 21)))
+
+
+def test_the_second_step_offers_only_the_criteria_the_first_picked():
+    client = FakeClient()
+    client.criteria = ["type", "aperture", "type", "no_such_criterion"]
+    seen = []
+    original = client.chat_json
+
+    def spy(model, messages, schema, max_tokens=None):
+        seen.append((messages, schema))
+        return original(model, messages, schema, max_tokens)
+    client.chat_json = spy
+    client.answer = {"filter": {"type": ["Gx"], "aperture": [None, 102]}, "text": None, "ignored": []}
+    answer = ask(client, "chat", "Galaxien bis 4 Zoll", Context(COLLECTION, OBSERVERS, date(2026, 11, 21)))
+    assert answer.criteria == ("type", "aperture")
+    (_choice, _choice_schema), (messages, fill) = seen
+    assert fill["properties"]["filter"]["required"] == ["type", "aperture"]
+    assert list(fill["properties"]["filter"]["properties"]) == ["type", "aperture"]
+    assert "- aperture:" in messages[0]["content"] and "- has_sketch:" not in messages[0]["content"]
+
+
+def test_with_no_criterion_picked_the_filter_stays_empty():
+    client = FakeClient()
+    client.criteria = []
+    client.answer = {"filter": {}, "text": "Spiralarme", "ignored": []}
+    answer = ask(client, "chat", "Wo sah ich Spiralarme?", Context(COLLECTION, OBSERVERS, date(2026, 11, 21)))
+    assert (answer.filter, answer.text, answer.criteria) == ({}, "Spiralarme", ())
+    assert "none: the filter stays empty" in client.questions[0][0]["content"]
+
+
+def test_the_first_step_shows_every_criterion_and_the_examples_choices():
+    client = FakeClient()
+    ask(client, "chat", "Galaxien", Context(COLLECTION, OBSERVERS, date(2026, 11, 21)))
+    prompt = client.choices[0][0]["content"]
+    assert "- has_sketch:" in prompt and "- private_grade:" in prompt
+    assert '{"criteria": ["type", "aperture"]}' in prompt

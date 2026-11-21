@@ -545,7 +545,8 @@ def _asked(client: Any, ai_config: AiConfig, question: str, collection: Collecti
     if answer.ignored:
         print(f"faint-fuzzies: warning: ignored {', '.join(f'"{part}"' for part in answer.ignored)} - "
               "no criterion expresses it, so the result may be broader than asked", file=sys.stderr)
-    return {"asked": question, "filter": answer.filter, "text": answer.text, "ignored": list(answer.ignored)}, \
+    return {"asked": question, "criteria": list(answer.criteria), "filter": answer.filter, "text": answer.text,
+            "ignored": list(answer.ignored)}, \
         answer.text
 
 
