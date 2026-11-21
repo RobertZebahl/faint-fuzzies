@@ -1064,8 +1064,11 @@ model picked in its first step), so they can be corrected and run again with
 * **Word lists.** Some rules hold for certain and are not left to the model: a word for a kind of object
   ("Galaxien", "double stars") always asks for a `type`, "a small telescope" is an `aperture` and no `optic_type`,
   a list's name ("Deep Sky mit dem Fernglas") is its `project` and its words ask for nothing else, and
-  `optic_type` without an instrument's word or `constellation` without a constellation's name is dropped. Only
-  the owner's observations have a private grade, so `scope` `OWNER` beside `private_grade` is dropped too.
+  `optic_type` without an instrument's word or `constellation` without a constellation's name is dropped, and
+  an observer's full name ("Mark McCarthy") asks for `observer`, never for an object's name. Only the owner's
+  observations have a private grade, so `scope` `OWNER` beside `private_grade` is dropped too, and so is a
+  `public_grade` of every grade but `FAILED`: it means "seen", and would leave out every observation without a
+  public grade.
 * **Names.** The model passes an object name on as written; it is then looked up among the data's names, whatever
   its case and first space, and by its short form from `object_name_abbreviations.json` ("M 31", "Messier 31").
   A name that is not there is an error with the closest names that are; a word for a kind of object given as a

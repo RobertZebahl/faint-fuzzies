@@ -52,13 +52,19 @@ CONSTELLATION_WORDS = re.compile(
 CONSTELLATION_ABBREVIATIONS = re.compile(r"\b(?:" + "|".join(CONSTELLATION_NAMES) + r")\b")
 
 
-def corrected(question: str, chosen: tuple[FilterKey, ...]) -> tuple[FilterKey, ...]:
+def corrected(question: str, chosen: tuple[FilterKey, ...], observer_names: tuple[str, ...] = ()) -> tuple[
+        FilterKey, ...]:
     """The criteria `chosen` for `question`, corrected by the word lists: a list's name adds project and its words
-    count for nothing else; a word for a kind of object adds type; a small telescope adds aperture and drops
-    optic_type; optic_type without an instrument's word, and constellation without a constellation's name, are
-    dropped."""
+    count for nothing else; an observer's full name adds observer; a word for a kind of object adds type; a small
+    telescope adds aperture and drops optic_type; optic_type without an instrument's word, and constellation
+    without a constellation's name, are dropped.
+
+    :param observer_names: the observers' full names ("Mark McCarthy")
+    """
     rest = question
     keys = list(chosen)
+    if any(names_observer(rest, name) for name in observer_names):
+        keys.append(K.OBSERVER)
     for pattern in LIST_NAMES.values():
         if pattern.search(rest):
             rest = pattern.sub(" ", rest)
@@ -74,6 +80,13 @@ def corrected(question: str, chosen: tuple[FilterKey, ...]) -> tuple[FilterKey, 
     if not (CONSTELLATION_WORDS.search(question) or CONSTELLATION_ABBREVIATIONS.search(question)):
         dropped.add(K.CONSTELLATION)
     return tuple(key for key in dict.fromkeys(keys) if key not in dropped)
+
+
+def names_observer(question: str, name: str) -> bool:
+    """Whether `question` names the observer `name` in full, also in the genitive ("Mark McCarthys")."""
+    words = name.split()
+    return bool(words) and re.search(r"\b" + r"\s+".join(map(re.escape, words)) + r"s?\b", question,
+                                     re.IGNORECASE) is not None
 
 
 def is_type_word(name: str) -> bool:

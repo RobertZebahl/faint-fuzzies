@@ -15,7 +15,7 @@ from typing import Any
 from faint_fuzzies.ai import AiAnswerError, AiError
 from faint_fuzzies.ai.client import AiClient
 from faint_fuzzies.ai.constellations import CONSTELLATION_NAMES
-from faint_fuzzies.ai.corrections import corrected, is_type_word
+from faint_fuzzies.ai.corrections import corrected, is_type_word, names_observer
 from faint_fuzzies.domain.collection import Collection
 from faint_fuzzies.domain.filters import FilterKey, FilterSpec, FilterSpecError
 from faint_fuzzies.domain.formats import CONSTELLATIONS
@@ -208,7 +208,8 @@ def ask(client: AiClient, model: str, question: str, context: Context) -> Answer
     """
     catalogues = [catalogue.name for catalogue in context.collection.catalogues]
     known = sorted(context.observers or (), key=lambda o: o.id)
-    chosen = corrected(question, choose_criteria(client, model, question))
+    names = tuple(o.name for o in known)
+    chosen = corrected(question, choose_criteria(client, model, question), names)
     criteria = "\n".join(f"- {key}: {CRITERIA[key]}" for key in chosen) or "none: the filter stays empty"
     prompt = INSTRUCTIONS.format(
         today=context.today.isoformat(), criteria=criteria,
@@ -223,7 +224,7 @@ def ask(client: AiClient, model: str, question: str, context: Context) -> Answer
         raw = client.chat_json(model, [{"role": "system", "content": prompt},
                                        {"role": "user", "content": f"Question: {question}"}],
                                schema(catalogues, [o.id for o in known], chosen), MAX_TOKENS)
-        answer = answer_of(raw, context.collection)
+        answer = answer_of(raw, context.collection, names)
     except (AiAnswerError, QuestionError) as exc:
         raise QuestionError(str(exc), tuple(str(key) for key in chosen)) from exc
     return Answer(answer.filter, answer.text, answer.ignored, tuple(str(key) for key in chosen))
@@ -255,9 +256,11 @@ def choose_criteria(client: AiClient, model: str, question: str) -> tuple[Filter
         if isinstance(picked, list) else ()
 
 
-def answer_of(raw: Any, collection: Collection) -> Answer:
+def answer_of(raw: Any, collection: Collection, observer_names: tuple[str, ...] = ()) -> Answer:
     """The model's answer `raw` made usable: empty criteria dropped, names replaced by the data's, and the
     filter checked.
+
+    :param observer_names: the observers' full names, which are no object's names
 
     :raises QuestionError: when the filter is not valid or a name is not found
     """
@@ -268,11 +271,15 @@ def answer_of(raw: Any, collection: Collection) -> Answer:
         raise QuestionError(f"the chat model's filter uses '{unknown[0]}', which a Question cannot")
     if K.NAME_GROUP in spec:
         names = [name for name in (spec[K.NAME_GROUP] if isinstance(spec[K.NAME_GROUP], list)
-                                   else [spec[K.NAME_GROUP]]) if not _kind_not_name(name, collection)]
+                                   else [spec[K.NAME_GROUP]]) if not _kind_not_name(name, collection)
+                 and not any(isinstance(name, str) and names_observer(name, o) for o in observer_names)]
         if names:
             spec[K.NAME_GROUP] = resolve_names(names, collection)
         else:
             del spec[K.NAME_GROUP]
+    # every grade but FAILED is "seen at all", which keeps out every observation without a public grade
+    if set(spec.get(K.PUBLIC_GRADE) or ()) == set(PUBLIC_GRADES) - {Difficulty.FAILED.value}:
+        del spec[K.PUBLIC_GRADE]
     # only the owner's observations have a private grade: OWNER beside it asks for nothing more
     if K.PRIVATE_GRADE in spec and spec.get(K.SCOPE) in (["OWNER"], "OWNER"):
         del spec[K.SCOPE]

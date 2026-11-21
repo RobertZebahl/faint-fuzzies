@@ -195,3 +195,22 @@ def test_a_rejected_answer_keeps_the_criteria_picked():
     with pytest.raises(QuestionError) as caught:
         ask(client, "chat", "Beobachtungen von NGC 9999", Context(COLLECTION, OBSERVERS, date(2026, 11, 21)))
     assert caught.value.criteria == ("name_group",)
+
+
+def test_an_observers_name_is_no_objects_name():
+    raw = {"filter": {"name_group": ["Anna Example"]}, "text": None, "ignored": []}
+    assert answer_of(raw, COLLECTION, ("Anna Example",)).filter == {}
+
+
+def test_every_grade_but_failed_asks_for_nothing():
+    raw = {"filter": {"public_grade": ["HARD", "EASY", "MEDIUM"]}, "text": None, "ignored": []}
+    assert answer_of(raw, COLLECTION).filter == {}
+    assert answer_of({**raw, "filter": {"public_grade": ["MEDIUM", "HARD"]}}, COLLECTION).filter == {
+        "public_grade": ["MEDIUM", "HARD"]}
+
+
+def test_a_named_observer_is_offered_to_the_second_step():
+    client = FakeClient()
+    client.criteria = ["name_group"]
+    ask(client, "chat", "Beobachtungen von Anna Example", Context(COLLECTION, OBSERVERS, date(2026, 11, 21)))
+    assert "- observer:" in client.questions[0][0]["content"]

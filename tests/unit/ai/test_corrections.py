@@ -49,3 +49,10 @@ def test_a_constellation_nobody_named_is_dropped(question):
                                         ("M 31", False), ("Albireo", False), ("Orion Nebula", False)])
 def test_a_word_for_a_kind_of_object(name, kind):
     assert is_type_word(name) is kind
+
+
+def test_an_observers_full_name_adds_observer():
+    names = ("Mark McCarthy", "Uwe Pilz")
+    assert K.OBSERVER in corrected("Galaxien, die Mark McCarthy fotografiert hat", (K.NAME_GROUP,), names)
+    assert K.OBSERVER in corrected("Uwe Pilzs Skizzen", (), names)
+    assert K.OBSERVER not in corrected("Galaxien von Mark", (), names)
