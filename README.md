@@ -994,14 +994,20 @@ for two things at once. So, unless `--no-rerank` is given, the chat model judges
 sentence each on what counts as `yes`, `partly` and `no`, since one set of rules cannot fit a search for
 structures and one for colours alike. It first tells which kind of search it is: one for a Detail or one for
 colours get a hand-written rubric (built on the definitions in [CONTEXT.md](CONTEXT.md)); any other kind gets a
-rubric the model writes for it, which is less reliable. It then reads the 60 best hits by score (every hit
-from a score of 0.55 on is a candidate, or from `--min-score`) in batches of 10 and judges each by that rubric:
-`yes` (seen), `partly` (only in traces, or only part of it) or `no`. The result carries the rubric as `rubric`. Hits judged `no` are dropped, and so is an Object left
-with none; the others are ranked by their best verdict (`yes` before `partly`), then by score, and the best
-`limit` Objects are kept. Every Object and every one of its hits then also carries its `verdict` (`null` for an
-observation that is not a hit). This takes some seconds per search, depending on the chat model and the GPU;
-judgements are not cached, since they depend on the search text. `--no-rerank` ranks by the embeddings alone, as
-described above, which is quicker and shows what reranking changes.
+rubric the model writes for it, which is less reliable. It then reads the notes of the 60 best hits by score
+(every hit from a score of 0.55 on is a candidate, or from `--min-score`) in batches of 10 and judges each by that
+rubric: `yes` (seen), `partly` (only in traces, or only part of it) or `no`. A note kept twice (the same
+observation with and without its English translation) is judged once. For colours, only notes with a colour word
+(German or English) are candidates: the embeddings hardly tell a note about the components' colours from one
+about their brightness. The result carries the rubric as `rubric`. Hits judged `no` are dropped, and so is an
+Object left with none; the others are ranked by their best verdict (`yes` before `partly`), then by score, and
+the best `limit` Objects are kept. Every Object and every one of its hits then also carries its `verdict` (`null`
+for an observation that is not a hit). This takes some seconds per search, depending on the chat model and the
+GPU; judgements are not cached, since they depend on the search text.
+
+So a reranked search shows the *best examples*, not every hit: there may be hundreds of notes about colours, and
+judging them all would take minutes. `--no-rerank` ranks by the embeddings alone, as described above, which is
+quicker, finds every hit above the score (unjudged), and shows what reranking changes.
 
 **Measuring the reranking.** `eval-ai --data-dir DIR` judges a test set of hand-judged notes with the chat model
 and reports how many verdicts agree, a confusion count (expected -> got), every case that disagrees, the rubric

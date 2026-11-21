@@ -2,6 +2,7 @@
 each whether its texts say that what was searched for was seen. That catches what embeddings miss - a negation
 ("no structure visible"), a word that only sounds alike ("visible with averted vision"), a search text that
 asks for two things at once."""
+import re
 from collections.abc import Callable
 from dataclasses import dataclass, replace
 
@@ -12,8 +13,8 @@ from faint_fuzzies.config import AiConfig
 
 YES, PARTLY, NO = "yes", "partly", "no"
 VERDICTS = (YES, PARTLY, NO)
-CANDIDATES = 60   # the most hits judged per search
-BATCH_SIZE = 10   # hits per request
+CANDIDATES = 60   # the most notes judged per search
+BATCH_SIZE = 10   # notes per request
 MIN_SCORE = 0.55  # the embedding pre-filter: below it, a text is not worth asking about
 TEXT_LENGTH = 600
 
@@ -105,6 +106,20 @@ it: "indirekt gut zu sehen", "sicher gesehen", "well seen with averted vision" a
 - Judge only what the note says, not what would be expected of such an object.
 Answer with one letter per note, in the order of the numbers."""
 
+# The words a note must have to be judged for a search of the rubric's kind, written by hand like the rubric: the
+# embedding hardly tells notes about colours from other notes about the components ("gleich hell" scored best for
+# "Farben der Komponenten erkannt"), so most of the CANDIDATES were wasted on notes without any colour. A word in a
+# note that does not count (\"Farbfehler\", "ohne Farbunterschied") is for the judge to sort out.
+CANDIDATE_WORDS = {
+    "colours": re.compile(
+        r"farb|färb|colou?r|\btint|\bhue\b"
+        r"|gelb|orange|blau|bläu|grün|violett|purpur|türkis|kupfer|wärmer|kühl"
+        r"|\b(?:\w*rot(?:e|er|es|en)?|rötlich\w*|\w*weiß\w*|\w*weiss\w*|gold\w*|\w*grau\w*|gräulich\w*|braun\w*|lila)\b"
+        r"|\b(?:yellow\w*|red|reddish|ruddy|blue|bluish|white|whitish|green\w*|golden|copper\w*|purple|lilac|violet"
+        r"|ash(?:en|y)|gr[ae]y\w*|warm\w*|cool\w*)\b",
+        re.IGNORECASE),
+}
+
 # one letter per verdict keeps the answer short: generating it is most of the time a judgement takes
 LETTERS = {"y": YES, "p": PARTLY, "n": NO}
 
@@ -147,9 +162,9 @@ def rubric_for(client: AiClient, model: str, query: str) -> dict[str, str]:
 
 def rerank(client: AiClient, config: AiConfig, query: str, results: list[SearchResult],
            on_progress: Callable[[str, float], None] | None = None) -> Reranked:
-    """The results with the CANDIDATES best hits judged by the rubric for `query` (see rubric_for): a
-    hit judged "no", and one not judged, is dropped; an Object ranks by its best verdict ("yes" before
-    "partly"), then by the best score among those hits.
+    """The results with the best hits judged by the rubric for `query` (see rubric_for and _candidates): a hit
+    judged "no", and one not judged, is dropped; an Object ranks by its best verdict ("yes" before "partly"),
+    then by the best score among those hits.
 
     :param client: the model server
     :param config: the AI settings: its chat_model judges, and at most its limit of Objects are returned
@@ -159,18 +174,18 @@ def rerank(client: AiClient, config: AiConfig, query: str, results: list[SearchR
     :returns: the reranked results, best first, and the rubric
     :raises AiError: when the server fails
     """
-    candidates = sorted((hit for result in results for hit in result.hits), key=lambda hit: -hit.score)
-    candidates = candidates[:CANDIDATES]
     if on_progress:
         on_progress(f"choosing the rubric with {config.chat_model}", 0.0)
     rubric = rubric_for(client, config.chat_model, query)
+    groups = list(_candidates(results, rubric).values())
     verdicts: dict[int, str] = {}
-    for start in range(0, len(candidates), BATCH_SIZE):
+    for start in range(0, len(groups), BATCH_SIZE):
         if on_progress:
-            on_progress(f"judging {len(candidates)} hits with {config.chat_model}", start / len(candidates))
-        batch = candidates[start:start + BATCH_SIZE]
-        judged = judge_notes(client, config.chat_model, query, [_note(hit) for hit in batch], rubric)
-        verdicts.update((id(hit), verdict) for hit, verdict in zip(batch, judged) if verdict is not None)
+            on_progress(f"judging {len(groups)} notes with {config.chat_model}", start / len(groups))
+        batch = groups[start:start + BATCH_SIZE]
+        judged = judge_notes(client, config.chat_model, query, [_note(hits[0]) for hits in batch], rubric)
+        verdicts.update((id(hit), verdict) for hits, verdict in zip(batch, judged) if verdict is not None
+                        for hit in hits)
     reranked = []
     for result in results:
         hits = [replace(hit, verdict=verdicts[id(hit)]) for hit in result.hits
@@ -180,6 +195,26 @@ def rerank(client: AiClient, config: AiConfig, query: str, results: list[SearchR
             reranked.append(SearchResult(result.match, tuple(hits)))
     reranked.sort(key=lambda result: (VERDICTS.index(result.verdict or NO), -result.score))
     return Reranked(reranked[:config.limit], rubric)
+
+
+def _candidates(results: list[SearchResult], rubric: dict[str, str]) -> dict[str, list[Hit]]:
+    """The hits worth judging, grouped by their note so each note is judged once: the hits of the CANDIDATES
+    best-scoring notes, of only those notes with a word of CANDIDATE_WORDS when the rubric's kind has any.
+    Notes are the same when their first text is (the same observation is often kept twice, once with and once
+    without its English translation).
+
+    :returns: the hits of each note, best first, the best note first
+    """
+    words = CANDIDATE_WORDS.get(rubric.get("kind", ""))
+    groups: dict[str, list[Hit]] = {}
+    for hit in sorted((hit for result in results for hit in result.hits), key=lambda hit: -hit.score):
+        texts = description_texts(hit.found.observation)
+        key = " ".join(texts[0].split()) if texts else ""
+        if key in groups:
+            groups[key].append(hit)
+        elif len(groups) < CANDIDATES and (words is None or words.search(" ".join(texts))):
+            groups[key] = [hit]
+    return groups
 
 
 def write_rubric(client: AiClient, model: str, query: str) -> dict[str, str]:

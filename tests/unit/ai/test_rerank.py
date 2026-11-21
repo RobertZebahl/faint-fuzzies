@@ -139,7 +139,7 @@ def test_a_rubric_answer_without_some_verdict_leaves_it_empty():
 def test_a_search_of_a_known_kind_is_judged_by_its_hand_written_rubric(kind, name):
     client = FakeClient()
     client.kind = kind
-    outcome = rerank_with_rubric(client, config(), "Staubband", [result("M31", ("Staubband.", 0.7))])
+    outcome = rerank_with_rubric(client, config(), "Staubband", [result("M31", ("Staubband gelblich.", 0.7))])
     assert outcome.rubric["kind"] == name
     assert client.rubrics == []
     assert f"y: {rerank_module.RUBRICS[kind]['yes']}" in client.chats[0]
@@ -150,3 +150,41 @@ def test_a_search_of_another_kind_gets_a_written_rubric():
     client = FakeClient()
     assert rerank_module.rubric_for(client, "chat", "nur mit Filter")["kind"] == "other"
     assert client.kinds == ["Search: nur mit Filter"] and client.rubrics == ["Search: nur mit Filter"]
+
+
+def test_a_colour_search_judges_only_notes_with_a_colour_word(monkeypatch):
+    monkeypatch.setattr(rerank_module, "CANDIDATES", 2)
+    client = FakeClient()
+    client.kind = "c"
+    results = rerank(client, config(), "Farben der Komponenten", [
+        result("STF1", ("Komponenten gleich hell.", 0.80)),
+        result("STF2", ("Komponenten gelblich und bläulich.", 0.70)),
+        result("STF3", ("Getrennt, beide Komponenten weiß.", 0.65)),
+        result("STF4", ("Primary orange, companion blue.", 0.60)),
+    ])
+    assert [re.findall(r"^\d+\. (.*)$", chat, re.MULTILINE) for chat in client.chats] == [
+        ["Komponenten gelblich und bläulich.", "Getrennt, beide Komponenten weiß."]]
+    assert labels(results) == ["STF2", "STF3"]
+
+
+@pytest.mark.parametrize("note", ["Hellere Komponente tiefrot.", "A goldfarben, B weißlich.", "Schöner Farbkontrast.",
+                                  "Eine Komponente wirkte etwas wärmer.", "Primary yellow, companion ashy grey.",
+                                  "No colour difference."])
+def test_the_colour_words_cover_german_and_english(note):
+    assert rerank_module.CANDIDATE_WORDS["colours"].search(note)
+
+
+@pytest.mark.parametrize("note", ["Komponenten gleich hell.", "Rotation des Feldes.", "Clearly split, reduced glare."])
+def test_notes_without_a_colour_are_no_colour_candidates(note):
+    assert not rerank_module.CANDIDATE_WORDS["colours"].search(note)
+
+
+def test_the_same_note_is_judged_once_and_its_verdict_applies_to_every_copy():
+    client = FakeClient()
+    copy = FoundObservation(Observation({"DESCRIPTION_DE": "Staubband deutlich.", "DESCRIPTION_EN": "Dust lane clear."},
+                                        False, None, ()), SimpleNamespace(label="M31"))
+    m31 = result("M31", ("Staubband deutlich.", 0.70))
+    m31 = SearchResult(m31.match, m31.hits + (Hit(copy, 0.68),))
+    [only] = rerank(client, config(), "Staubband", [m31])
+    assert re.findall(r"^\d+\. (.*)$", client.chats[0], re.MULTILINE) == ["Staubband deutlich."]
+    assert [hit.verdict for hit in only.hits] == ["yes", "yes"]
