@@ -112,6 +112,14 @@ The sky readings (Bortle class, limiting magnitude, SQM, SQM-L, seeing) of a Ses
 **Local conditions near the object**:
 Additional sky readings an Observation may give for the region right around its Object, distinct from its Conditions; they never replace the general ones. Public descriptions show them when they are present.
 
+**Description**:
+The free text in which an Observer tells what was seen, in German, in English, or in no language in particular. An
+Observation may have several.
+
+**Notes**:
+The private remarks an Observer adds to a Community observation. Never published, and not a Description, though
+a Description search covers them too.
+
 **Sketch**:
 A hand-drawn illustration of what was seen, attached to a visual-method Observation. Stating the OPTIC used
 is always required. An Observation may have several. A Sketch may show several Objects (two stars in one
@@ -195,6 +203,18 @@ An observation's verdict on how an Object went - a Private Grade (a number, see 
 
 **Seen**:
 An Object is seen when any Private observation of it states a seen Private Grade or no Grade at all. Bright objects such as the Moon and planets carry no Grade, because a Grade makes no sense for them.
+
+## Searching
+
+**Description search**:
+Finding the Observations whose Descriptions mean something, not just contain certain words, in either language.
+It ranks the Observations by how well they fit and never gives a plain yes or no.
+_Avoid_: full-text search, AI search
+
+**Question**:
+A request put in natural language, German or English, that stands for a filter and, optionally, a Description
+search.
+_Avoid_: prompt, query
 
 ## Data quality
 

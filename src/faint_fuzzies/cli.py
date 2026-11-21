@@ -1,4 +1,5 @@
 import argparse
+import dataclasses
 import datetime
 import gc
 import json
@@ -8,9 +9,11 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from itertools import zip_longest
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from faint_fuzzies import __version__, checks
+from faint_fuzzies.ai import AiError
+from faint_fuzzies.config import CONFIG_PATH, AiConfig, read_ai_config
 from faint_fuzzies.converters.gcvs import convert_gcvs
 from faint_fuzzies.converters.herschel import convert_herschel
 from faint_fuzzies.converters.sac import convert_sac
@@ -30,7 +33,7 @@ from faint_fuzzies.datadir import (
 from faint_fuzzies.domain.catalogue import load_catalogue
 from faint_fuzzies.domain.catalogue_order import own_catalogue_order
 from faint_fuzzies.domain.collection import Collection
-from faint_fuzzies.domain.filters import FilterSpec, FilterSpecError, filter_objects
+from faint_fuzzies.domain.filters import FilterSpec, FilterSpecError, Match, filter_objects
 from faint_fuzzies.domain.findings import ERROR, CatalogueError, Finding
 from faint_fuzzies.domain.formats import DSS_SOURCES
 from faint_fuzzies.domain.lists import LISTS, Entry, build_list
@@ -50,6 +53,9 @@ from faint_fuzzies.importers.wds_alternative_names import apply_alternative_name
 from faint_fuzzies.loading import build_double_star_collection, load_static_catalogues, step_reporter
 from faint_fuzzies.storage import load_json_list, write_text_atomically
 from faint_fuzzies.upload import UploadError, upload_site
+
+if TYPE_CHECKING:
+    from faint_fuzzies.ai.search import SearchResult
 
 # what each source catalogue is called on the command line, its converter and a description
 CONVERTERS = {
@@ -97,6 +103,15 @@ def _build_parser() -> argparse.ArgumentParser:
                                help="filter as inline JSON or as the path of a JSON file; default: match everything")
     filter_parser.add_argument("--names-only", action="store_true",
                                help="print only the first name of every match")
+    filter_parser.add_argument("--search", metavar="TEXT",
+                               help="Description search: rank the matches by how well their observations' "
+                                    "descriptions fit TEXT (German or English); needs --data-dir and the [ai] "
+                                    "table of the config file (see the README)")
+    filter_parser.add_argument("--limit", type=int, metavar="N",
+                               help="with --search, the most observations returned; default: [ai].limit")
+    filter_parser.add_argument("--min-score", type=float, metavar="SCORE",
+                               help="with --search, the lowest similarity (-1 to 1) that still counts; "
+                                    "default: [ai].min_score")
     _add_sessions_option(filter_parser)
     _add_community_options(filter_parser)
     _add_object_name_abbreviations_option(filter_parser)
@@ -435,6 +450,7 @@ def _run_filter(args: argparse.Namespace) -> int:
     :param args: the parsed command-line arguments
     :returns: the process exit code
     """
+    ai_config = _search_config(args)
     inputs = _inputs(args, args.catalogue, "--catalogue")
     spec = _load_spec(args.filter)
     sessions = load_sessions(inputs.sessions) if inputs.sessions else None
@@ -442,24 +458,14 @@ def _run_filter(args: argparse.Namespace) -> int:
     findings = (_finding_index(args.data_dir, collection, references, observers, sessions, community,
                                double_star_findings, double_star_targets)
                 if spec.finding else None)
-    objects: list[Any] = []
-    for match in filter_objects(collection, spec, references, observers, findings):
-        obj = match.object
-        if args.names_only:
-            objects.append(obj.label)
-        else:
-            objects.append({
-                "catalogue": obj.catalogue,
-                "names": list(obj.names),
-                "groups": list(obj.groups),
-                "types": [t.value for t in obj.types],
-                "constellation": obj.constellation,
-                "seen": match.seen.value,
-                "references": [_reference_json(r) for r in references.of(obj)],
-                "observations": [_observation_json(f, obj) for f in match.observations],
-                "resolved": _resolved_json(obj, references),
-                "record": obj.record,
-            })
+    matches = filter_objects(collection, spec, references, observers, findings)
+    if ai_config is None:
+        scored = [(match, None, {}) for match in matches]
+    else:
+        scored = [(result.match, result.score, {id(found): score for found, score in result.hits})
+                  for result in _description_search(args, ai_config, collection, matches)]
+    objects = [match.object.label if args.names_only else _match_json(match, references, score, hit_scores)
+               for match, score, hit_scores in scored]
     skipped = sum(c.skipped for c in collection.catalogues)
     ignored = sum(c.ignored_observations for c in collection.catalogues)
     notices = []
@@ -473,6 +479,89 @@ def _run_filter(args: argparse.Namespace) -> int:
         print(f"faint-fuzzies: {'; '.join(notices)}; run 'faint-fuzzies validate' for details", file=sys.stderr)
     _emit({"count": len(objects), "objects": objects}, args.output)
     return EXIT_OK
+
+
+def _match_json(match: Match, references: References, score: float | None,
+                hit_scores: dict[int, float]) -> dict[str, Any]:
+    """A match of `filter`, as JSON; with --search, the match's score first and each observation's own.
+
+    :param match: the match
+    :param references: the collection's cross-catalogue references
+    :param score: the match's best score with --search, None without
+    :param hit_scores: the score of each observation that is a hit, by id() of its FoundObservation
+    :returns: the match, as JSON
+    """
+    obj = match.object
+    observations = [_observation_json(f, obj) for f in match.observations]
+    if score is not None:
+        for found, observation in zip(match.observations, observations):
+            observation["score"] = _rounded(hit_scores.get(id(found)))
+    result = {"score": _rounded(score)} if score is not None else {}
+    return result | {
+        "catalogue": obj.catalogue,
+        "names": list(obj.names),
+        "groups": list(obj.groups),
+        "types": [t.value for t in obj.types],
+        "constellation": obj.constellation,
+        "seen": match.seen.value,
+        "references": [_reference_json(r) for r in references.of(obj)],
+        "observations": observations,
+        "resolved": _resolved_json(obj, references),
+        "record": obj.record,
+    }
+
+
+def _search_config(args: argparse.Namespace) -> AiConfig | None:
+    """The AI settings `filter --search` needs, checked before anything is loaded; None without --search.
+
+    :param args: the parsed command-line arguments
+    :returns: the [ai] table, with --limit and --min-score applied, or None
+    :raises UsageError: when --search is missing what it needs, or --limit/--min-score come without it
+    """
+    if args.search is None:
+        if args.limit is not None or args.min_score is not None:
+            raise UsageError("--limit and --min-score only go with --search")
+        return None
+    if not args.search.strip():
+        raise UsageError("--search needs a text")
+    if args.data_dir is None:
+        raise UsageError("--search needs --data-dir, where the description index is cached")
+    try:
+        import numpy  # noqa: F401  # pylint: disable=unused-import
+    except ImportError as exc:
+        raise UsageError("--search needs the 'ai' extra (pip install 'faint-fuzzies[ai]')") from exc
+    ai_config = read_ai_config()
+    if ai_config is None:
+        raise UsageError(f"--search needs an [ai] table in {CONFIG_PATH} (see the README)")
+    if args.limit is not None and args.limit < 1:
+        raise UsageError("--limit must be at least 1")
+    if args.min_score is not None and not -1.0 <= args.min_score <= 1.0:
+        raise UsageError("--min-score must be between -1 and 1")
+    return dataclasses.replace(ai_config, limit=args.limit or ai_config.limit,
+                               min_score=ai_config.min_score if args.min_score is None else args.min_score)
+
+
+def _description_search(args: argparse.Namespace, ai_config: AiConfig, collection: Collection,
+                        matches: list[Match]) -> list["SearchResult"]:
+    """The matches ranked by --search, after bringing the description index up to date.
+
+    :param args: the parsed command-line arguments
+    :param ai_config: the AI settings
+    :param collection: the loaded collection, all of whose Descriptions are indexed
+    :param matches: the filter's matches
+    :returns: the matches with hits, best first
+    """
+    from faint_fuzzies.ai.client import AiClient
+    from faint_fuzzies.ai.index import update_index
+    from faint_fuzzies.ai.search import query_vector, rank
+    client = AiClient(ai_config.url, ai_config.timeout)
+    index = update_index(args.data_dir, collection.objects, client, ai_config.embedding_model, step_reporter())
+    query = query_vector(client, ai_config.embedding_model, args.search)
+    return rank(matches, query, index, ai_config.min_score, ai_config.limit)
+
+
+def _rounded(score: float | None) -> float | None:
+    return None if score is None else round(score, 4)
 
 
 def _reference_json(reference: Object) -> dict[str, Any]:
@@ -1063,6 +1152,6 @@ def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
     try:
         return args.handler(args)
-    except (CatalogueError, FilterSpecError, OutputError, UsageError, UploadError) as exc:
+    except (AiError, CatalogueError, FilterSpecError, OutputError, UsageError, UploadError) as exc:
         print(f"faint-fuzzies: error: {exc}", file=sys.stderr)
         return EXIT_USAGE

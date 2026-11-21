@@ -41,6 +41,7 @@ This is a rewrite of an earlier, unpublished tool (see [History](#history)).
       - [Double Stars](#double-stars)
 - [References](#references)
 - [Filter specification](#filter-specification)
+- [Description search](#description-search)
 - [The Local App](#the-local-app)
 - [Lists and projects](#lists-and-projects)
 - [DSS images and orbit diagrams](#dss-images-and-orbit-diagrams)
@@ -146,10 +147,14 @@ uv build                      # wheel in dist/
 uv pip install dist/*.whl     # or: uv pip install -e . --group dev
 ```
 
+The extras `ui` (the local app), `upload` (uploading the website) and `ai` (`filter --search`, see
+[Description search](#description-search)) add what those features need, for example
+`uv pip install -e ".[ui,ai]"`.
+
 ## Command line
 
 ```
-faint-fuzzies filter   (--data-dir DIR | --catalogue FILE [--catalogue FILE ...] [--sessions FILE] [--observers FILE --community FORMAT OBSERVER FILE ...] [--object-name-abbreviations FILE]) [--filter SPEC] [--names-only] [--output FILE]
+faint-fuzzies filter   (--data-dir DIR | --catalogue FILE [--catalogue FILE ...] [--sessions FILE] [--observers FILE --community FORMAT OBSERVER FILE ...] [--object-name-abbreviations FILE]) [--filter SPEC] [--search TEXT [--limit N] [--min-score SCORE]] [--names-only] [--output FILE]
 faint-fuzzies validate (--data-dir DIR | FILE [FILE ...] [--sessions FILE] [--observers FILE --community FORMAT OBSERVER FILE ...] [--object-name-abbreviations FILE] [--optic-names FILE]) [--references] [--duplicate-names] [--output FILE]
 faint-fuzzies format   (--check | --write) (--data-dir DIR | [FILE ...] [--sessions FILE ...]) [--output FILE]
 faint-fuzzies list     (global | project-double-stars | project-deep-sky-with-binoculars) (--data-dir DIR | --catalogue FILE [--catalogue FILE ...] [--observers FILE --community FORMAT OBSERVER FILE ...] [--object-name-abbreviations FILE]) [--sublist NAME] [--output FILE]
@@ -221,6 +226,7 @@ observations/projects/deep-sky-with-binoculars/<observer>/visual.csv
 dss/<catalogue>/                                                   generated DSS image cache (see below)
 orbits/                                                             generated orbit diagram cache (see below)
 site-build/                                                         the app's own built website (see below); never read, only written
+cache/ai/                                                           generated Description search index (see Description search); safe to delete
 ```
 
 `catalogues/`, `observations/global/` and `observations/projects/` hold only external data — never the own
@@ -894,6 +900,57 @@ warning or info level. The filter bar itself only has Catalogue, Name/Group Patt
 heading above the table carries the number of rows currently shown (invalid records and matches together),
 updating live as the filter changes; the "Sessions" heading above its own table carries the total number of
 Sessions, which the filter bar never affects.
+
+## Description search
+
+`filter --search TEXT` ranks the Objects a filter matches by how well the Descriptions of their Observations fit
+`TEXT` - by meaning, not by the words themselves, and across German and English: "Spiralarme angedeutet" also
+finds "hints of spiral structure". It searches every Observation, own and community, Private and Public, including
+the Notes of Community observations (the search only runs locally; nothing of it reaches the website). It needs
+`--data-dir`, the `ai` extra and a local model server.
+
+```
+faint-fuzzies filter --data-dir DIR --filter '{"type": "Gx"}' --search "Strukturen oder Spiralarme gesehen"
+```
+
+**The model server.** The tool talks to any server with an OpenAI-compatible API (`POST <url>/embeddings`) and
+never loads a model itself (see [ADR 0001](docs/adr/0001-local-ai-via-external-server-outside-filterspec.md)).
+With [Ollama](https://ollama.com):
+
+```
+ollama pull bge-m3            # a multilingual embedding model (German and English in one space)
+ollama serve                  # if it is not already running as a service
+```
+
+llama.cpp's `llama-server` or LM Studio work as well. On an AMD GPU that ROCm does not officially support (such as
+the RX 6600, gfx1032), Ollama's ROCm build usually needs `HSA_OVERRIDE_GFX_VERSION=10.3.0` in its environment;
+its Vulkan backend is the alternative. `ollama ps` shows whether a loaded model runs on the GPU or the CPU.
+
+**The configuration.** An `[ai]` table in `~/.config/faint-fuzzies/config.toml`; without it, `--search` says so and
+everything else works as before:
+
+```toml
+[ai]
+url = "http://localhost:11434/v1"   # the API's base URL; Ollama's OpenAI-compatible one ends in /v1
+chat_model = "qwen3:8b"             # for Questions in natural language (not used yet)
+embedding_model = "bge-m3"
+min_score = 0.5                     # optional: the lowest similarity (-1 to 1) that still counts as a hit
+limit = 100                         # optional: the most Observations one search returns
+timeout = 300                       # optional: seconds to wait for one answer of the server
+```
+
+**The result.** A Description search ranks and never gives a plain yes or no: an Observation is a *hit* when its
+best text scores at least `min_score`, the best `limit` hits over all matches are kept, and an Object is listed
+(best first) when it has at least one. With `--search`, every Object of the result carries its `score` (that of
+its best hit) and every one of its observations its own (`null` for one that is not a hit); all of its
+observations are still listed. `--limit` and `--min-score` override the config for one run. A good `min_score`
+depends on the embedding model, so it is worth trying a few searches with `--min-score 0` and looking at the
+scores. Embeddings hardly notice a negation: "no structure visible" lands close to "structure visible".
+
+**The index.** The first search embeds every Description of the data directory (minutes on a GPU, longer on a CPU)
+and keeps the vectors in `cache/ai/embeddings-<model>.npz`; later searches only send texts that are new or were
+changed, and drop those no Observation has any more. Each embedding model has a file of its own. Deleting
+`cache/ai/` is always safe - the next search rebuilds it.
 
 ## The Local App
 

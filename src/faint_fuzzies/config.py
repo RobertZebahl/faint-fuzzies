@@ -1,5 +1,5 @@
 """The user's config file, so day-to-day commands (currently "serve", "upload") do not need the same options
-every time."""
+every time, and the settings of the local AI server ("filter --search")."""
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
@@ -81,6 +81,66 @@ def resolve_upload_config() -> UploadConfig:
         raise CatalogueError(f"{CONFIG_PATH}'s [upload].exclude must be a list of strings")
     return UploadConfig(host=upload["host"], user=upload["user"], remote_path=upload["remote_path"], port=port,
                         confirm_delete_root=confirm_delete_root, exclude=tuple(exclude))
+
+
+@dataclass(frozen=True)
+class AiConfig:
+    """The "ai" table of the config file: the local model server that Questions and Description search use
+    (see docs/adr/0001-local-ai-via-external-server-outside-filterspec.md).
+
+    :ivar url: the base URL of the server's OpenAI-compatible API, for example "http://localhost:11434/v1"
+    :ivar chat_model: the language model that turns a Question into a filter
+    :ivar embedding_model: the model that turns Descriptions into vectors; a multilingual one, so a German
+        and an English text about the same thing land close together
+    :ivar min_score: the lowest similarity (cosine, -1 to 1) a Description search still counts as a hit
+    :ivar limit: the most Observations a Description search returns
+    :ivar timeout: seconds to wait for one answer of the server
+    """
+    url: str
+    chat_model: str
+    embedding_model: str
+    min_score: float = 0.5
+    limit: int = 100
+    timeout: float = 300.0
+
+
+def read_ai_config() -> AiConfig | None:
+    """The "ai" table of the config file, or None when there is no config file or it has no such table - the
+    AI features are then simply not there.
+
+    :returns: the resolved AI config, or None
+    :raises faint_fuzzies.domain.findings.CatalogueError: when the [ai] table is there but invalid
+    """
+    if not CONFIG_PATH.is_file():
+        return None
+    ai = _read_config().get("ai")
+    if ai is None:
+        return None
+    if not isinstance(ai, dict):
+        raise CatalogueError(f"{CONFIG_PATH}'s 'ai' entry must be a table ([ai])")
+    missing = [key for key in ("url", "chat_model", "embedding_model") if not isinstance(ai.get(key), str)]
+    if missing:
+        raise CatalogueError(f"{CONFIG_PATH}'s [ai] table needs string entries for: {', '.join(missing)}")
+    min_score = float(_ai_number(ai, "min_score", AiConfig.min_score, whole=False))
+    limit = int(_ai_number(ai, "limit", AiConfig.limit, whole=True))
+    timeout = float(_ai_number(ai, "timeout", AiConfig.timeout, whole=False))
+    if not -1.0 <= min_score <= 1.0:
+        raise CatalogueError(f"{CONFIG_PATH}'s [ai].min_score must be between -1 and 1")
+    if limit < 1 or timeout <= 0:
+        raise CatalogueError(f"{CONFIG_PATH}'s [ai].limit and [ai].timeout must be greater than 0")
+    return AiConfig(url=ai["url"].rstrip("/"), chat_model=ai["chat_model"], embedding_model=ai["embedding_model"],
+                    min_score=min_score, limit=limit, timeout=timeout)
+
+
+def _ai_number(ai: dict, key: str, default: float, whole: bool) -> float:
+    """An optional number of the [ai] table, `default` when it is not there.
+
+    :raises faint_fuzzies.domain.findings.CatalogueError: when it is not a number (a whole one, with `whole`)
+    """
+    value = ai.get(key, default)
+    if not isinstance(value, int if whole else (int, float)) or isinstance(value, bool):
+        raise CatalogueError(f"{CONFIG_PATH}'s [ai].{key} must be a {'whole ' if whole else ''}number")
+    return value
 
 
 def _read_config() -> dict:

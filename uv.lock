@@ -714,6 +714,9 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
+ai = [
+    { name = "numpy" },
+]
 ui = [
     { name = "matplotlib" },
     { name = "nicegui" },
@@ -728,7 +731,7 @@ upload = [
 [package.dev-dependencies]
 dev = [
     { name = "coverage" },
-    { name = "faint-fuzzies", extra = ["ui", "upload"] },
+    { name = "faint-fuzzies", extra = ["ai", "ui", "upload"] },
     { name = "pylint" },
     { name = "pytest" },
     { name = "robotframework" },
@@ -744,15 +747,17 @@ requires-dist = [
     { name = "keyring", marker = "extra == 'upload'", specifier = ">=25,<26" },
     { name = "matplotlib", marker = "extra == 'ui'", specifier = ">=3.9,<4" },
     { name = "nicegui", marker = "extra == 'ui'", specifier = ">=3.0,<4" },
+    { name = "numpy", marker = "extra == 'ai'", specifier = ">=2.0,<3" },
     { name = "numpy", marker = "extra == 'ui'", specifier = ">=2.0,<3" },
     { name = "pillow", marker = "extra == 'ui'", specifier = ">=11.0,<13" },
     { name = "starlette", marker = "extra == 'ui'", specifier = ">=1.3,<2" },
 ]
-provides-extras = ["ui", "upload"]
+provides-extras = ["ui", "upload", "ai"]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "coverage", specifier = ">=7.6,<8" },
+    { name = "faint-fuzzies", extras = ["ai"] },
     { name = "faint-fuzzies", extras = ["ui"] },
     { name = "faint-fuzzies", extras = ["upload"] },
     { name = "pylint", specifier = ">=4.0,<5" },
