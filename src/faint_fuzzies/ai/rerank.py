@@ -107,10 +107,19 @@ it: "indirekt gut zu sehen", "sicher gesehen", "well seen with averted vision" a
 Answer with one letter per note, in the order of the numbers."""
 
 # The words a note must have to be judged for a search of the rubric's kind, written by hand like the rubric: the
-# embedding hardly tells notes about colours from other notes about the components ("gleich hell" scored best for
-# "Farben der Komponenten erkannt"), so most of the CANDIDATES were wasted on notes without any colour. A word in a
-# note that does not count (\"Farbfehler\", "ohne Farbunterschied") is for the judge to sort out.
+# embedding ranks notes by what they share with the search text, the object rather than the Detail or the colour
+# ("die Galaxie wirkt leicht unrund" for "Details oder Strukturen in der Galaxie gesehen": 11 of the 60 best notes
+# named a Detail; "gleich hell" for "Farben der Komponenten erkannt": 34 of 60 named a colour). A word in a
+# note that does not count ("Farbfehler", "ohne Farbunterschied") is for the judge to sort out.
 CANDIDATE_WORDS = {
+    "detail": re.compile(
+        r"struktur|structur|detail|staub|dust|spiral|knoten|knötchen|\bknots?\b|balken|\bbarred\b|\bbar\b"
+        r"|dunkelstruktur|dunkelwolke|dunkelband|\bdunkle\w* (?:band|bereich|fleck|zone|streifen|linie)"
+        r"|\bdark (?:lanes?|bands?|patch\w*|structures?|zones?|rifts?|regions?|clouds?)"
+        r"|einschnür|fleckig|gefleckt|mottl|patchy|clumpy|körnig|granul|inhomogen|ungleichmäßig|nicht homogen|uneven"
+        r"|\w*band\b|\w*bänder|\blanes?\b|filament|\bh ?-?ii\b|sternwolke|star ?clouds?|absorption"
+        r"|\barme?\b|\barmen\b|\barms?\b",
+        re.IGNORECASE),
     "colours": re.compile(
         r"farb|färb|colou?r|\btint|\bhue\b"
         r"|gelb|orange|blau|bläu|grün|violett|purpur|türkis|kupfer|wärmer|kühl"

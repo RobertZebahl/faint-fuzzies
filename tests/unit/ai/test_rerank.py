@@ -188,3 +188,17 @@ def test_the_same_note_is_judged_once_and_its_verdict_applies_to_every_copy():
     [only] = rerank(client, config(), "Staubband", [m31])
     assert re.findall(r"^\d+\. (.*)$", client.chats[0], re.MULTILINE) == ["Staubband deutlich."]
     assert [hit.verdict for hit in only.hits] == ["yes", "yes"]
+
+
+@pytest.mark.parametrize("note", ["Indirekt Dunkelstrukturen sichtbar.", "Das Staubband war deutlich.",
+                                  "Der südwestliche Spiralarm als Halbkreis.", "Die Galaxie wirkt etwas fleckig.",
+                                  "Bei 150x 3 deutliche Einschnürungen.", "Nur der Balken der Galaxie.",
+                                  "Dust lane obvious.", "Two knots and a dark lane."])
+def test_the_detail_words_cover_german_and_english(note):
+    assert rerank_module.CANDIDATE_WORDS["detail"].search(note)
+
+
+@pytest.mark.parametrize("note", ["Die Galaxie wirkt leicht unrund.", "Mond störte die Dunkeladaption.",
+                                  "Mit dunklerem Himmel mehr.", "Heller Nebelfleck mit Kern.", "Warm night, well seen."])
+def test_notes_without_a_detail_are_no_detail_candidates(note):
+    assert not rerank_module.CANDIDATE_WORDS["detail"].search(note)

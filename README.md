@@ -997,9 +997,10 @@ colours get a hand-written rubric (built on the definitions in [CONTEXT.md](CONT
 rubric the model writes for it, which is less reliable. It then reads the notes of the 60 best hits by score
 (every hit from a score of 0.55 on is a candidate, or from `--min-score`) in batches of 10 and judges each by that
 rubric: `yes` (seen), `partly` (only in traces, or only part of it) or `no`. A note kept twice (the same
-observation with and without its English translation) is judged once. For colours, only notes with a colour word
-(German or English) are candidates: the embeddings hardly tell a note about the components' colours from one
-about their brightness. The result carries the rubric as `rubric`. Hits judged `no` are dropped, and so is an
+observation with and without its English translation) is judged once. For a Detail or colours, only notes with a
+word for one (German or English: "Staubband", "Spiralarm", "dust lane"; "gelblich", "Farbkontrast", "bluish") are
+candidates: the embeddings rank notes by what they share with the search text, the galaxy or the components,
+rather than by the Detail or the colour. The result carries the rubric as `rubric`. Hits judged `no` are dropped, and so is an
 Object left with none; the others are ranked by their best verdict (`yes` before `partly`), then by score, and
 the best `limit` Objects are kept. Every Object and every one of its hits then also carries its `verdict` (`null`
 for an observation that is not a hit). This takes some seconds per search, depending on the chat model and the
