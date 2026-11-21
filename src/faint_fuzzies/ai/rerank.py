@@ -18,24 +18,22 @@ MIN_SCORE = 0.55  # the embedding pre-filter: below it, a text is not worth aski
 TEXT_LENGTH = 600
 
 INSTRUCTIONS = """You judge notes that amateur astronomers wrote about what they saw of a sky object, in German or \
-English. The search names something they may have seen or noticed - usually a detail inside the object, but it \
-can also be a property such as the colours of a double star's components, a separation achieved, or a filter that \
-was needed. For every numbered note, decide whether the note says that what the search asks for was seen - a more \
-specific kind of it counts too (a dust lane, a dark lane, a knot or a spiral arm is a structure; "gelblich und \
-bläulich" are colours of the components):
-- "y": it was seen.
-- "p": it was seen, but only faintly or in traces. Every note with "Ansätze", "ansatzweise", "erahnbar", "teils" \
-or "hints of" about it is "p", however well the rest was seen.
-- "n": anything else - the note does not mention it, says it was not seen, or doubts that it was seen at all \
-("möglicherweise", "vielleicht", "nicht sicher", "possibly", "not sure").
+English. The search names a detail they may have seen inside the object. For every numbered note, decide whether \
+the note says that this detail was seen - a more specific kind of it counts too (a dust lane, a dark lane, a knot \
+or a spiral arm is a structure):
+- "y": the detail was seen.
+- "p": the detail was seen, but only faintly or in traces. Every note with "Ansätze", "ansatzweise", "erahnbar", \
+"teils" or "hints of" about the detail is "p", however well the rest was seen.
+- "n": anything else - the note does not mention the detail, says it was not seen, or doubts that it was seen at \
+all ("möglicherweise", "vielleicht", "nicht sicher", "possibly", "not sure").
 Rules:
-- Only whether the note names what the search asks for counts. How well the object was seen says nothing about \
-it: "indirekt gut zu sehen", "sicher gesehen", "well seen with averted vision" alone are "n". Averted vision is a \
-normal observing technique, not a doubt either: something seen with averted vision is "y".
-- When the search asks for a detail: the object's overall shape, size or brightness, or a brighter centre, is not \
-a detail, so a note that only describes those is "n".
-- Doubt about whether the object itself was seen ("blitzte etwas auf", "not seen for sure") is not a hint of \
-anything the search asks for: "n".
+- Only whether the note names the detail counts. How well the object was seen says nothing about the detail: \
+"indirekt gut zu sehen", "sicher gesehen", "well seen with averted vision" alone are "n". Averted vision is a \
+normal observing technique, not a doubt either: a detail seen with averted vision is "y".
+- The object's overall shape, size or brightness, or a brighter centre, is not a detail: a note that only \
+describes those is "n".
+- Doubt about whether the object itself was seen ("blitzte etwas auf", "not seen for sure") is not a hint of a \
+detail: "n".
 - Judge only what the note says, not what would be expected of such an object.
 Examples for the search "dust lane seen": "Dust lane obvious with averted vision." -> y; "At 150x traces of the \
 dust lane." -> p; "Bright and large, dust lane only partly visible." -> p; "Perhaps a dust lane, but I am not \
