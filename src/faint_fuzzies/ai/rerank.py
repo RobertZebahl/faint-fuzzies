@@ -22,20 +22,23 @@ English. The search names a detail they may have seen inside the object. For eve
 the note says that this detail was seen - a more specific kind of it counts too (a dust lane, a dark lane, a knot \
 or a spiral arm is a structure):
 - "y": the detail was seen.
-- "p": the detail was seen, but only faintly or in traces ("Ansätze", "ansatzweise", "erahnbar", "teils", "hints of").
+- "p": the detail was seen, but only faintly or in traces. Every note with "Ansätze", "ansatzweise", "erahnbar", \
+"teils" or "hints of" about the detail is "p", however well the rest was seen.
 - "n": anything else - the note does not mention the detail, says it was not seen, or doubts that it was seen at \
 all ("möglicherweise", "vielleicht", "nicht sicher", "possibly", "not sure").
 Rules:
-- Averted vision ("indirekt", "bei indirektem Sehen", "averted vision") is a normal observing technique, not a \
-doubt: a detail seen with averted vision is "y".
+- Only whether the note names the detail counts. How well the object was seen says nothing about the detail: \
+"indirekt gut zu sehen", "sicher gesehen", "well seen with averted vision" alone are "n". Averted vision is a \
+normal observing technique, not a doubt either: a detail seen with averted vision is "y".
 - The object's overall shape, size or brightness, or a brighter centre, is not a detail: a note that only \
 describes those is "n".
 - Doubt about whether the object itself was seen ("blitzte etwas auf", "not seen for sure") is not a hint of a \
 detail: "n".
 - Judge only what the note says, not what would be expected of such an object.
 Examples for the search "dust lane seen": "Dust lane obvious with averted vision." -> y; "At 150x traces of the \
-dust lane." -> p; "Perhaps a dust lane, but I am not sure." -> n; "Elongated, brighter core." -> n; "Something \
-faint flickered up now and then." -> n.
+dust lane." -> p; "Bright and large, dust lane only partly visible." -> p; "Perhaps a dust lane, but I am not \
+sure." -> n; "Elongated, brighter core." -> n; "Round, but definitely and well seen with averted vision." -> n; \
+"Something faint flickered up now and then." -> n.
 Answer with one letter per note, in the order of the numbers."""
 
 # one letter per verdict keeps the answer short: generating it is most of the time a judgement takes
