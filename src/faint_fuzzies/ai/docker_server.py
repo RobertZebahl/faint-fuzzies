@@ -2,7 +2,7 @@
 it is not running, and stopped again afterwards - only when it was started here.
 
 A container is created once and then reused as it is: a changed image, GPU or env in the config only takes
-effect after the container is removed (`docker rm ollama`); the models survive that in their volume.
+effect after the container is removed (`docker rm faint-fuzzies-ollama`); the models survive that in their volume.
 """
 import time
 from collections.abc import Callable, Generator

@@ -41,7 +41,7 @@ def test_a_missing_container_is_created_from_the_config_and_its_image_pulled(por
     assert engine.created == {
         "image": "ollama/ollama:rocm", "detach": True,
         "ports": {"11434/tcp": ("127.0.0.1", port)},
-        "volumes": {"ollama": {"bind": "/root/.ollama", "mode": "rw"}},
+        "volumes": {"faint-fuzzies-ollama": {"bind": "/root/.ollama", "mode": "rw"}},
         "environment": {"HSA_OVERRIDE_GFX_VERSION": "10.3.0"},
         "devices": ["/dev/kfd:/dev/kfd:rwm", "/dev/dri:/dev/dri:rwm"],
     }
@@ -63,7 +63,7 @@ def test_an_nvidia_gpu_is_asked_for_with_a_device_request(port, ollama):
 
 
 def test_a_stopped_container_is_started_for_the_block_and_stopped_after_it(port, ollama):
-    container = FakeContainer("ollama", ollama, status="exited")
+    container = FakeContainer("faint-fuzzies-ollama", ollama, status="exited")
     engine = FakeEngine(ollama, container=container)
     with running_container(settings(port), engine=engine):
         assert container.status == "running"
@@ -73,7 +73,7 @@ def test_a_stopped_container_is_started_for_the_block_and_stopped_after_it(port,
 
 def test_a_running_container_is_used_and_left_running(port, ollama):
     ollama.start()
-    container = FakeContainer("ollama", ollama, status="running")
+    container = FakeContainer("faint-fuzzies-ollama", ollama, status="running")
     with running_container(settings(port), engine=FakeEngine(ollama, container=container)):
         pass
     assert container.calls == []
@@ -81,7 +81,7 @@ def test_a_running_container_is_used_and_left_running(port, ollama):
 
 
 def test_a_container_that_stops_before_it_answers_shows_its_last_lines(port, ollama):
-    container = FakeContainer("ollama", ollama, crash=True)
+    container = FakeContainer("faint-fuzzies-ollama", ollama, crash=True)
     with (pytest.raises(AiError, match="stopped .exited.*\n.*no compatible GPUs"),
           running_container(settings(port), engine=FakeEngine(ollama, container=container))):
         pass

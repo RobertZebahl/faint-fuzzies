@@ -96,11 +96,11 @@ class DockerConfig:
     :ivar env: environment variables of the container, such as HSA_OVERRIDE_GFX_VERSION
     :ivar volume: the volume the models are kept in
     """
-    container: str = "ollama"
+    container: str = "faint-fuzzies-ollama"
     image: str = "ollama/ollama"
     gpu: str = "none"
     env: tuple[tuple[str, str], ...] = ()
-    volume: str = "ollama"
+    volume: str = "faint-fuzzies-ollama"
 
 
 GPUS = ("amd", "nvidia", "none")

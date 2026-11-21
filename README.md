@@ -933,21 +933,24 @@ env = { HSA_OVERRIDE_GFX_VERSION = "10.3.0" }   # only for an AMD GPU ROCm does 
 The table goes into `~/.config/faint-fuzzies/config.toml`; without `[ai]`, `--search` says so and everything else
 works as before. With `[ai.docker]`, a search:
 
-* creates the container (named by `container`, default `ollama`) from `image` when there is none, pulling the
-  image first. Its port is published on `127.0.0.1` only, at the port of `url` - never on the network - and the
-  models are kept in the volume named by `volume` (default `ollama`), never in the data directory. `gpu = "amd"`
-  passes `/dev/kfd` and `/dev/dri` in; `"nvidia"` asks for every GPU (it needs the NVIDIA container toolkit).
+* creates the container (named by `container`, default `faint-fuzzies-ollama`) from `image` when there is none,
+  pulling the image first. Its port is published on `127.0.0.1` only, at the port of `url` - never on the
+  network - and the models are kept in the volume named by `volume` (also `faint-fuzzies-ollama` by default),
+  never in the data directory. `gpu = "amd"` passes `/dev/kfd` and `/dev/dri` in; `"nvidia"` asks for every GPU
+  (it needs the NVIDIA container toolkit).
 * starts the container when it is not running, waits until its server answers, and stops it again afterwards.
-  A container that was already running is used as it is and left running, so `docker start ollama` keeps it
-  going between searches.
+  A container that was already running is used as it is and left running, so `docker start faint-fuzzies-ollama`
+  keeps it going between searches.
 * downloads `embedding_model` into the server when it does not have it yet - the only thing the tool does that is
   specific to Ollama.
 
 A container is created once and then reused as it is: a changed `image`, `gpu` or `env` only takes effect after
-`docker rm ollama` (the models survive in their volume). An RX 6600 (gfx1032) is not officially supported by ROCm
-and needs the `HSA_OVERRIDE_GFX_VERSION` above; `docker exec ollama ollama ps` shows whether a loaded model runs
-on the GPU or the CPU, and `docker logs ollama` why not. `docker rm ollama && docker volume rm ollama` removes
-everything again.
+`docker rm faint-fuzzies-ollama` (the models survive in their volume). An RX 6600 (gfx1032) is not officially
+supported by ROCm and needs the `HSA_OVERRIDE_GFX_VERSION` above; `docker exec faint-fuzzies-ollama ollama ps`
+shows whether a loaded model runs on the GPU or the CPU, and `docker logs faint-fuzzies-ollama` why not. Everything
+of it lives in Docker: the image (shared with any other container of it), the container and the models' volume.
+`docker rm faint-fuzzies-ollama && docker volume rm faint-fuzzies-ollama` removes all but the image, and
+`docker rmi ollama/ollama:rocm` that too.
 
 **Other servers.** Without `[ai.docker]`, the server can also be any other one with that API - Ollama installed
 by hand, llama.cpp's `llama-server` (one model per process), LM Studio - with `command` to have the tool start it
