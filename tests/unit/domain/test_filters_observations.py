@@ -120,3 +120,19 @@ def test_session_filter_without_sessions_loaded_matches_nothing():
 ))
 def test_has_sketch_photograph_and_image_criteria(has_media, spec, expected):
     assert filter_labels(spec, has_media) == expected
+
+
+@pytest.mark.parametrize(("spec", "expected"), filter_cases(
+    ('{"optic": "B,10x50"}', "NGC1055", "NGC457", "NGC884"),
+    ('{"optic": ["b, 8x42", "R,70,400"]}', "Mond", "NGC752"),
+    ('{"optic": "A"}', "NGC3", "NGC4"),
+    ('{"optic": "B,10x50", "public": false, "aperture": [null, 30]}',),
+))
+def test_optic_names_the_instruments_themselves(spec, expected):
+    assert filter_labels(spec, OBSERVATIONS) == expected
+
+
+def test_an_optic_must_be_an_optic_code():
+    from faint_fuzzies.domain.filters import FilterSpec, FilterSpecError
+    with pytest.raises(FilterSpecError, match="invalid optic '16x70'"):
+        FilterSpec.from_dict({"optic": "16x70"})

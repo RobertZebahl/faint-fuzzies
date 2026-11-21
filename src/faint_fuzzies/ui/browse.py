@@ -175,6 +175,7 @@ one; an object matches when any one of its observations satisfies every observat
 - `method` — list of `visual`, `photographic`
 - `public` — true/false
 - `optic_type` — list of `naked_eye`, `binoculars`, `telescope`
+- `optic` — list of OPTIC codes, such as `"B,16x70"`
 - `aperture` — `[min, max]` in mm
 - `date` — `["2020-01-01", null]`, private observations only
 - `has_sketch`, `has_photograph`, `has_image` — true/false

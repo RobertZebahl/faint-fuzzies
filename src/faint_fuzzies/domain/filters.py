@@ -25,6 +25,7 @@ from faint_fuzzies.domain.observation import (
     Observation,
     OpticType,
     is_header,
+    parse_optic,
 )
 from faint_fuzzies.domain.observer import OWN_ID, Observers, Scope
 from faint_fuzzies.domain.references import References
@@ -67,6 +68,7 @@ class FilterKey(StrEnum):
     BINOCULAR_RATING = "binocular_rating"
     SEEN = "seen"
     OPTIC_TYPE = "optic_type"
+    OPTIC = "optic"
     PUBLIC_GRADE = "public_grade"
     METHOD = "method"
     FINDING = "finding"
@@ -87,7 +89,7 @@ FLAG_CRITERIA = (FilterKey.IS_GROUP, FilterKey.EXCLUDE_GROUP_MEMBERS, FilterKey.
                  FilterKey.HEADER_ONLY, FilterKey.PUBLISH_WITHOUT_OBSERVATION)
 RANGE_CRITERIA = (FilterKey.APERTURE, FilterKey.PRIVATE_GRADE, FilterKey.DATE, FilterKey.SIZE_RATIO,
                   FilterKey.SEPARATION, FilterKey.RATING, FilterKey.BINOCULAR_RATING)
-CHOICE_CRITERIA = (FilterKey.SEEN, FilterKey.OPTIC_TYPE, FilterKey.PUBLIC_GRADE, FilterKey.METHOD,
+CHOICE_CRITERIA = (FilterKey.SEEN, FilterKey.OPTIC_TYPE, FilterKey.OPTIC, FilterKey.PUBLIC_GRADE, FilterKey.METHOD,
                    FilterKey.FINDING, FilterKey.SCOPE)
 SUPPORTED = (*TEXT_CRITERIA, *PATTERN_CRITERIA, *TYPE_CRITERIA, *PROJECT_CRITERIA, *FLAG_CRITERIA,
              *RANGE_CRITERIA, *CHOICE_CRITERIA, FilterKey.MAGNITUDE, FilterKey.MAGNITUDE_DELTA, FilterKey.SIZE)
@@ -132,7 +134,7 @@ class SizeCriterion:
 @dataclass(frozen=True)
 class FilterSpec:
     """Criteria are combined with AND; several values inside one criterion mean OR. The observation criteria
-    (observer, method, public, optic_type, aperture, date, has_sketch, has_photograph, has_image, public_grade,
+    (observer, method, public, optic_type, optic, aperture, date, has_sketch, has_photograph, has_image, public_grade,
     private_grade, session, scope) must all hold for the same observation.
 
     :ivar name: Object names to match (OR), case-insensitive, against any of an Object's own names
@@ -163,6 +165,8 @@ class FilterSpec:
     :ivar seen: the Object's seen status (OR)
     :ivar public: an observation's public flag (observation criterion)
     :ivar optic_type: an observation's optic type (observation criterion, OR)
+    :ivar optic: an observation's instrument, as its OPTIC code ("B,16x70"), compared without case or spaces
+        (observation criterion, OR)
     :ivar method: an observation's method (observation criterion, OR)
     :ivar aperture: an observation's optic aperture, in range (observation criterion)
     :ivar date: an observation's date, in range (observation criterion)
@@ -222,6 +226,7 @@ class FilterSpec:
     seen: tuple[SeenStatus, ...] = ()
     public: bool | None = None
     optic_type: tuple[OpticType, ...] = ()
+    optic: tuple[str, ...] = ()
     method: tuple[Method, ...] = ()
     aperture: Range | None = None
     date: Range | None = None
@@ -247,7 +252,8 @@ class FilterSpec:
     @property
     def has_observation_criteria(self) -> bool:
         """Whether any criterion that must hold for the same observation is set (see the class docstring)."""
-        return any((self.observer, self.method, self.public is not None, self.optic_type, self.aperture, self.date,
+        return any((self.observer, self.method, self.public is not None, self.optic_type, self.optic, self.aperture,
+                    self.date,
                     self.has_sketch is not None, self.has_photograph is not None, self.has_image is not None,
                     self.public_grade, self.private_grade, self.session, self.scope))
 
@@ -287,6 +293,9 @@ class FilterSpec:
             values[FilterKey.OPTIC_TYPE] = _choices(FilterKey.OPTIC_TYPE,
                                                     _text_list(FilterKey.OPTIC_TYPE, data[FilterKey.OPTIC_TYPE]),
                                                     _by_value(OpticType))
+        if FilterKey.OPTIC in data:
+            values[FilterKey.OPTIC] = _choices(FilterKey.OPTIC, _text_list(FilterKey.OPTIC, data[FilterKey.OPTIC]),
+                                               _optic_code)
         if FilterKey.METHOD in data:
             values[FilterKey.METHOD] = _choices(FilterKey.METHOD, _text_list(FilterKey.METHOD,
                                                 data[FilterKey.METHOD]), _by_value(Method))
@@ -346,6 +355,25 @@ def _choices(key: str, texts: tuple[str, ...], parse: Callable[[str], Any]) -> t
         return tuple(parse(text) for text in texts)
     except ValueError as exc:
         raise FilterSpecError(f"'{key}': {exc}") from exc
+
+
+def optic_key(code: str) -> str:
+    """An OPTIC code as the `optic` criterion compares it: without case or spaces ("b, 16x70" is "B,16x70")."""
+    return "".join(code.split()).casefold()
+
+
+def _optic_code(text: str) -> str:
+    """An `optic` value, checked to be an OPTIC code ("A", "B,16x70", "S,56", "R,80,400"), as optic_key gives it.
+
+    :raises ValueError: when `text` is no OPTIC code
+    """
+    key = optic_key(text)
+    design, _, rest = key.partition(",")
+    try:
+        parse_optic(design.upper() + ("," + rest if rest else ""))
+    except ValueError as exc:
+        raise ValueError(f"invalid optic '{text}' (an OPTIC code such as \"B,16x70\" or \"R,80,400\")") from exc
+    return key
 
 
 def _by_value(enum: type[Enum]) -> Callable[[str], Any]:
@@ -615,6 +643,8 @@ def filter_objects(collection: Collection, spec: FilterSpec, references: Referen
         if spec.public is not None and o.public != spec.public:
             return False
         if spec.optic_type and (o.optic is None or o.optic.type not in spec.optic_type):
+            return False
+        if spec.optic and (o.optic is None or optic_key(o.optic.code) not in spec.optic):
             return False
         if spec.aperture and not _in_range(o.optic.aperture if o.optic else None, spec.aperture):
             return False

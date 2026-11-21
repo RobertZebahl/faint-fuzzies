@@ -884,6 +884,7 @@ one of its observations does, and the result lists only the matching observation
 | `method` | list of `visual`, `photographic` | used that method |
 | `public` | true / false | are public / private |
 | `optic_type` | list of `naked_eye`, `binoculars`, `telescope` | used such an instrument |
+| `optic` | list of OPTIC codes, such as `"B,16x70"` or `"R,80,400"`; case and spaces do not matter | used one of these instruments |
 | `aperture` | `[min, max]` in mm | used an aperture in range; `null` leaves a side open |
 | `date` | `[min, max]` as `"YYYY-MM-DD"`; `null` leaves a side open | started within the range (private observations only) |
 | `has_sketch` | true / false | do / do not have a sketch |
