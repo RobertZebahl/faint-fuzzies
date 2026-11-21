@@ -82,6 +82,25 @@ def corrected(question: str, chosen: tuple[FilterKey, ...], observer_names: tupl
     return tuple(key for key in dict.fromkeys(keys) if key not in dropped)
 
 
+# binoculars as their magnification times their aperture ("16x70", "16 x 70", "16×70")
+BINOCULARS = re.compile(r"\b(\d{1,2})\s*[x×]\s*(\d{2,3})\b", re.IGNORECASE)
+
+
+def binoculars_in(question: str) -> list[str]:
+    """The OPTIC codes of the binoculars `question` names ("16x70" is "B,16x70"), in its order."""
+    return list(dict.fromkeys(f"B,{int(power)}x{int(aperture)}" for power, aperture in BINOCULARS.findall(question)))
+
+
+def with_binoculars(question: str, spec: dict) -> dict:
+    """`spec` with the binoculars `question` names as its optic, in place of the optic type and aperture the model
+    may have made of them; unchanged when it names none."""
+    codes = binoculars_in(question)
+    if not codes:
+        return spec
+    rest = {key: value for key, value in spec.items() if key not in (K.APERTURE, K.OPTIC_TYPE)}
+    return rest | {str(K.OPTIC): codes}
+
+
 def names_observer(question: str, name: str) -> bool:
     """Whether `question` names the observer `name` in full, also in the genitive ("Mark McCarthys")."""
     words = name.split()

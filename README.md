@@ -1066,7 +1066,9 @@ model picked in its first step), so they can be corrected and run again with
   ("Galaxien", "double stars") always asks for a `type`, "a small telescope" is an `aperture` and no `optic_type`,
   a list's name ("Deep Sky mit dem Fernglas") is its `project` and its words ask for nothing else, and
   `optic_type` without an instrument's word or `constellation` without a constellation's name is dropped, and
-  an observer's full name ("Mark McCarthy") asks for `observer`, never for an object's name. Only the owner's
+  an observer's full name ("Mark McCarthy") asks for `observer`, never for an object's name. Binoculars named by
+  their magnification and aperture ("16x70") become `optic` `"B,16x70"`, in place of an `optic_type` or
+  `aperture` the model made of them. Only the owner's
   observations have a private grade, so `scope` `OWNER` beside `private_grade` is dropped too, and so is a
   `public_grade` of every grade but `FAILED`: it means "seen", and would leave out every observation without a
   public grade.

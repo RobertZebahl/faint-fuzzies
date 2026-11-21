@@ -15,7 +15,7 @@ from typing import Any
 from faint_fuzzies.ai import AiAnswerError, AiError
 from faint_fuzzies.ai.client import AiClient
 from faint_fuzzies.ai.constellations import CONSTELLATION_NAMES
-from faint_fuzzies.ai.corrections import corrected, is_type_word, names_observer
+from faint_fuzzies.ai.corrections import corrected, is_type_word, names_observer, with_binoculars
 from faint_fuzzies.domain.collection import Collection
 from faint_fuzzies.domain.filters import FilterKey, FilterSpec, FilterSpecError
 from faint_fuzzies.domain.formats import CONSTELLATIONS
@@ -233,7 +233,8 @@ def ask(client: AiClient, model: str, question: str, context: Context,
         answer = answer_of(raw, context.collection, names)
     except (AiAnswerError, QuestionError) as exc:
         raise QuestionError(str(exc), tuple(str(key) for key in chosen)) from exc
-    return Answer(answer.filter, answer.text, answer.ignored, tuple(str(key) for key in chosen))
+    return Answer(with_binoculars(question, answer.filter), answer.text, answer.ignored,
+                  tuple(str(key) for key in chosen))
 
 
 def choose_criteria(client: AiClient, model: str, question: str) -> tuple[FilterKey, ...]:

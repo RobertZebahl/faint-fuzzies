@@ -214,3 +214,11 @@ def test_a_named_observer_is_offered_to_the_second_step():
     client.criteria = ["name_group"]
     ask(client, "chat", "Beobachtungen von Anna Example", Context(COLLECTION, OBSERVERS, date(2026, 11, 21)))
     assert "- observer:" in client.questions[0][0]["content"]
+
+
+def test_binoculars_named_in_a_question_become_its_optic():
+    client = FakeClient()
+    client.answer = {"filter": {"optic_type": ["binoculars"], "scope": ["OWNER"]}, "text": None, "ignored": []}
+    answer = ask(client, "chat", "Welche Objekte habe ich mit einem 16x70 Fernglas beobachtet?",
+                 Context(COLLECTION, OBSERVERS, date(2026, 11, 21)))
+    assert answer.filter == {"scope": ["OWNER"], "optic": ["B,16x70"]}

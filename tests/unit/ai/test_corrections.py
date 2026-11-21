@@ -1,7 +1,7 @@
 """The word lists that correct a Question's first step."""
 import pytest
 
-from faint_fuzzies.ai.corrections import corrected, is_type_word
+from faint_fuzzies.ai.corrections import binoculars_in, corrected, is_type_word, with_binoculars
 from faint_fuzzies.domain.filters import FilterKey as K
 
 
@@ -56,3 +56,17 @@ def test_an_observers_full_name_adds_observer():
     assert K.OBSERVER in corrected("Galaxien, die Mark McCarthy fotografiert hat", (K.NAME_GROUP,), names)
     assert K.OBSERVER in corrected("Uwe Pilzs Skizzen", (), names)
     assert K.OBSERVER not in corrected("Galaxien von Mark", (), names)
+
+
+@pytest.mark.parametrize("question, codes", [("mit einem 16x70 Fernglas", ["B,16x70"]),
+                                             ("with my 8 x 42 and 15×70 binoculars", ["B,8x42", "B,15x70"]),
+                                             ("Galaxien mit 102 mm", [])])
+def test_binoculars_are_found_by_their_power_and_aperture(question, codes):
+    assert binoculars_in(question) == codes
+
+
+def test_named_binoculars_replace_the_optic_type_and_aperture():
+    spec = {"scope": ["OWNER"], "optic_type": ["binoculars"], "aperture": [70, 70]}
+    assert with_binoculars("Welche Objekte habe ich mit einem 16x70 Fernglas beobachtet?", spec) == {
+        "scope": ["OWNER"], "optic": ["B,16x70"]}
+    assert with_binoculars("Galaxien mit dem Fernglas", spec) == spec
