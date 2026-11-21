@@ -1,8 +1,8 @@
 """A stand-in for the model server: an embedding is the count of a few keywords in the text, plus one constant
 dimension so no vector is zero - enough to tell which texts are about the same thing. Its chat model judges a
 note "n" (no) when it has a negation, "p" (partly) when it hedges, "y" (yes) when it has a word of the search,
-and gives the notes listed in `skip` the unusable letter "x". Asked for a rubric, it gives the same one for every
-search."""
+and gives the notes listed in `skip` the unusable letter "x". Asked for the kind of a search, it gives `kind` ("o"
+unless a test sets another); asked for a rubric, the same one for every search."""
 import re
 
 NEGATIONS = ("nicht", "not", "keine", "kein")
@@ -29,6 +29,8 @@ class FakeClient:
         self.skip = set(skip)
         self.chats = []
         self.rubrics = []
+        self.kinds = []
+        self.kind = "o"
 
     def embed(self, model, texts):
         self.embedded.extend(texts)
@@ -36,6 +38,9 @@ class FakeClient:
 
     def chat_json(self, model, messages, schema):
         prompt = messages[-1]["content"]
+        if "kind" in schema.get("properties", {}):
+            self.kinds.append(prompt)
+            return {"kind": self.kind}
         if "yes" in schema.get("properties", {}):
             self.rubrics.append(prompt)
             return {"yes": "it was seen.", "partly": "only traces.", "no": "anything else."}

@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from faint_fuzzies.ai.client import AiClient
-from faint_fuzzies.ai.rerank import BATCH_SIZE, VERDICTS, judge_notes, write_rubric
+from faint_fuzzies.ai.rerank import BATCH_SIZE, VERDICTS, judge_notes, rubric_for
 from faint_fuzzies.domain.findings import CatalogueError
 from faint_fuzzies.storage import load_json_list
 
@@ -41,8 +41,8 @@ def read_cases(path: Path) -> list[dict[str, str]]:
 
 def evaluate(client: AiClient, model: str, cases: list[dict[str, str]],
              on_progress: Callable[[str, float], None] | None = None) -> dict[str, Any]:
-    """Judges every case with `model` as reranking does - a rubric written for each search, then BATCH_SIZE
-    notes of that search per request - and compares the verdicts with the expected ones.
+    """Judges every case with `model` as reranking does - the rubric for each search (see rerank.rubric_for),
+    then BATCH_SIZE notes of that search per request - and compares the verdicts with the expected ones.
 
     :returns: the report: the number of cases and of agreements, the share that agrees, the seconds the
         judging took (rubrics included), the rubric of each search, the confusion counts (expected -> got ->
@@ -79,7 +79,7 @@ def _judged(client: AiClient, model: str, cases: list[dict[str, str]], rubrics: 
         if on_progress:
             on_progress(f"judging {len(cases)} test cases with {model}", done / len(batches))
         if search not in rubrics:
-            rubrics[search] = write_rubric(client, model, search)
+            rubrics[search] = rubric_for(client, model, search)
         notes = [cases[n]["note"] for n in numbers]
         for number, verdict in zip(numbers, judge_notes(client, model, search, notes, rubrics[search])):
             got[number] = verdict

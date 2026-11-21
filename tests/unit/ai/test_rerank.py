@@ -124,7 +124,7 @@ def test_the_rubric_is_written_once_per_search_and_shown_to_every_batch(monkeypa
     many = [result(f"G{n}", (f"Staubband {n}.", 0.9 - n / 100)) for n in range(30)]
     outcome = rerank_with_rubric(client, config(), "Staubband", many)
     assert client.rubrics == ["Search: Staubband"]
-    assert outcome.rubric == {"yes": "it was seen.", "partly": "only traces.", "no": "anything else."}
+    assert outcome.rubric == {"kind": "other", "yes": "it was seen.", "partly": "only traces.", "no": "anything else."}
     assert all("Rubric:\ny: it was seen.\np: only traces.\nn: anything else.\n" in chat for chat in client.chats)
 
 
@@ -132,3 +132,21 @@ def test_a_rubric_answer_without_some_verdict_leaves_it_empty():
     client = FakeClient()
     client.chat_json = lambda model, messages, schema: {"yes": "  named\n colours "}
     assert rerank_module.write_rubric(client, "chat", "Farben") == {"yes": "named colours", "partly": "", "no": ""}
+
+
+@pytest.mark.parametrize("kind, name", [pytest.param("d", "detail", id="detail"),
+                                        pytest.param("c", "colours", id="colours")])
+def test_a_search_of_a_known_kind_is_judged_by_its_hand_written_rubric(kind, name):
+    client = FakeClient()
+    client.kind = kind
+    outcome = rerank_with_rubric(client, config(), "Staubband", [result("M31", ("Staubband.", 0.7))])
+    assert outcome.rubric["kind"] == name
+    assert client.rubrics == []
+    assert f"y: {rerank_module.RUBRICS[kind]['yes']}" in client.chats[0]
+    assert f"Examples: {rerank_module.RUBRICS[kind]['examples']}" in client.chats[0]
+
+
+def test_a_search_of_another_kind_gets_a_written_rubric():
+    client = FakeClient()
+    assert rerank_module.rubric_for(client, "chat", "nur mit Filter")["kind"] == "other"
+    assert client.kinds == ["Search: nur mit Filter"] and client.rubrics == ["Search: nur mit Filter"]

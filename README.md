@@ -990,10 +990,11 @@ scores. Embeddings hardly notice a negation: "no structure visible" lands close 
 
 **Reranking.** Embeddings miss a negation ("no structure visible" lands close to "structure visible"), a word
 that only sounds alike ("well seen with averted vision" next to "structure visible"), and a search text that asks
-for two things at once. So, unless `--no-rerank` is given, the chat model first writes a *rubric* for the search -
-one sentence each on what counts as `yes`, `partly` and `no` for exactly this search, following fixed guidance
-(what a Detail is, when colours count, that traces are `partly` and doubt is `no`) - since one set of rules
-cannot fit a search for structures and one for colours alike. It then reads the 60 best hits by score (every hit
+for two things at once. So, unless `--no-rerank` is given, the chat model judges the hits by a *rubric*: one
+sentence each on what counts as `yes`, `partly` and `no`, since one set of rules cannot fit a search for
+structures and one for colours alike. It first tells which kind of search it is: one for a Detail or one for
+colours get a hand-written rubric (built on the definitions in [CONTEXT.md](CONTEXT.md)); any other kind gets a
+rubric the model writes for it, which is less reliable. It then reads the 60 best hits by score (every hit
 from a score of 0.55 on is a candidate, or from `--min-score`) in batches of 10 and judges each by that rubric:
 `yes` (seen), `partly` (only in traces, or only part of it) or `no`. The result carries the rubric as `rubric`. Hits judged `no` are dropped, and so is an Object left
 with none; the others are ranked by their best verdict (`yes` before `partly`), then by score, and the best

@@ -44,6 +44,55 @@ RUBRIC_SCHEMA = {
     "additionalProperties": False,
 }
 
+KIND_INSTRUCTIONS = """Amateur astronomers search their observing notes. Say what kind of thing the search asks for, \
+with one letter:
+- "d": a detail seen inside a sky object - structure, spiral arms, a dust lane, dark lanes, knots, a bar, mottling.
+- "c": colours - of a star, or of the components of a double or multiple star.
+- "o": anything else."""
+
+KIND_SCHEMA = {
+    "type": "object",
+    "properties": {"kind": {"type": "string", "enum": ["d", "c", "o"]}},
+    "required": ["kind"],
+    "additionalProperties": False,
+}
+
+# The rubrics of the kinds of search the chat model is known to judge well with them, written by hand from the
+# definitions in CONTEXT.md (Detail) and the user's rules for colours. A generated rubric (write_rubric) is only
+# the fallback for any other kind: the model writes them unreliably.
+RUBRICS = {
+    "d": {
+        "kind": "detail",
+        "yes": "The note says the detail, or a more specific kind of it, was seen - a dust lane, a dark lane, a knot, "
+               "a bar or a spiral arm is a structure. Seen with averted vision is still seen.",
+        "partly": "The detail was seen only faintly or in traces: every note with \"Ansätze\", \"ansatzweise\", "
+                  "\"erahnbar\", \"teils\" or \"hints of\" about it, however well the rest was seen.",
+        "no": "Anything else: the detail is not mentioned, not seen, or only possibly seen (\"möglicherweise\", "
+              "\"vielleicht\", \"nicht sicher\"). The object's overall shape, size or brightness, or a brighter "
+              "centre, is not a detail, and being well seen (\"indirekt gut zu sehen\", \"sicher gesehen\") says "
+              "nothing about one.",
+        "examples": "(searching \"dust lane seen\") \"Dust lane obvious with averted vision.\" -> y; \"At 150x "
+                    "traces of the dust lane.\" -> p; \"Bright and large, dust lane only partly visible.\" -> p; "
+                    "\"Perhaps a dust lane, but I am not sure.\" -> n; \"Elongated, brighter core.\" -> n; \"Round, "
+                    "but definitely and well seen with averted vision.\" -> n; \"Something faint flickered up now "
+                    "and then.\" -> n.",
+    },
+    "c": {
+        "kind": "colours",
+        "yes": "The note names a colour of the stars or components - any colour, white too - or says they have the "
+               "same or a similar colour, or no colour difference. A slight colour difference counts as well.",
+        "partly": "The colour of only one component is named, while the other's could not be made out.",
+        "no": "Anything else: no colour named, or the colours were not seen (\"Farben Fehlanzeige\", \"nicht "
+              "erkennbar\"). A colour caused by the instrument (\"Farbfehler\", chromatic aberration, a coloured "
+              "halo) or only implied by a brightness difference does not count. That components were seen, split, "
+              "or equally or differently bright says nothing about colours.",
+        "examples": "\"Each star looked white to me.\" -> y; \"Primary orange, companion bluish.\" -> y; \"The pair "
+                    "shows hardly any difference in hue.\" -> y; \"Primary golden, the companion's tint escaped "
+                    "me.\" -> p; \"Cleanly split, same brightness.\" -> n; \"Bluish fringes from the refractor's "
+                    "chromatic aberration.\" -> n; \"All three stars clearly visible.\" -> n.",
+    },
+}
+
 INSTRUCTIONS = """You judge notes that amateur astronomers wrote about what they saw of a sky object, in German or \
 English. For every numbered note, decide by the rubric whether the note says that what the search asks for was \
 seen: "y" (yes), "p" (partly) or "n" (no).
@@ -81,9 +130,23 @@ class Reranked:
     rubric: dict[str, str]
 
 
+def rubric_for(client: AiClient, model: str, query: str) -> dict[str, str]:
+    """The rubric to judge `query`'s hits by: the hand-written one of its kind (see RUBRICS) when the chat model
+    puts it in one, else one written for it (see write_rubric), with its "kind" set to "other".
+
+    :raises AiError: when the server fails
+    """
+    answer = client.chat_json(model, [{"role": "system", "content": KIND_INSTRUCTIONS},
+                                      {"role": "user", "content": f"Search: {query}"}], KIND_SCHEMA)
+    kind = answer.get("kind") if isinstance(answer, dict) else None
+    if kind in RUBRICS:
+        return RUBRICS[kind]
+    return {"kind": "other", **write_rubric(client, model, query)}
+
+
 def rerank(client: AiClient, config: AiConfig, query: str, results: list[SearchResult],
            on_progress: Callable[[str, float], None] | None = None) -> Reranked:
-    """The results with the CANDIDATES best hits judged by a rubric written for `query` (see write_rubric): a
+    """The results with the CANDIDATES best hits judged by the rubric for `query` (see rubric_for): a
     hit judged "no", and one not judged, is dropped; an Object ranks by its best verdict ("yes" before
     "partly"), then by the best score among those hits.
 
@@ -98,8 +161,8 @@ def rerank(client: AiClient, config: AiConfig, query: str, results: list[SearchR
     candidates = sorted((hit for result in results for hit in result.hits), key=lambda hit: -hit.score)
     candidates = candidates[:CANDIDATES]
     if on_progress:
-        on_progress(f"writing the rubric with {config.chat_model}", 0.0)
-    rubric = write_rubric(client, config.chat_model, query)
+        on_progress(f"choosing the rubric with {config.chat_model}", 0.0)
+    rubric = rubric_for(client, config.chat_model, query)
     verdicts: dict[int, str] = {}
     for start in range(0, len(candidates), BATCH_SIZE):
         if on_progress:
@@ -121,7 +184,8 @@ def rerank(client: AiClient, config: AiConfig, query: str, results: list[SearchR
 def write_rubric(client: AiClient, model: str, query: str) -> dict[str, str]:
     """What counts as "yes", "partly" and "no" for `query`, written by the chat model from RUBRIC_GUIDANCE: one
     fixed set of judging rules cannot fit every search (structures in a galaxy, colours of a double star), and
-    rules that do not fit the search confuse the model.
+    rules that do not fit the search confuse the model. Only used for a search of no kind in RUBRICS: the 8B
+    models tried write rubrics unreliably (eval-ai: 64 instead of 69 of 73 for structures).
 
     :param client: the model server
     :param model: the chat model
@@ -143,12 +207,14 @@ def judge_notes(client: AiClient, model: str, query: str, notes: list[str],
     :param model: the chat model
     :param query: the search text
     :param notes: the notes, one line each
-    :param rubric: what counts as each verdict for `query` (see write_rubric)
+    :param rubric: what counts as each verdict for `query`, and maybe examples (see rubric_for)
     :returns: one verdict per note, in the order of `notes`
     :raises AiError: when the server fails
     """
     numbered = "\n".join(f"{number}. {note}" for number, note in enumerate(notes, start=1))
     rules = "\n".join(f"{letter}: {rubric.get(verdict, '')}" for letter, verdict in LETTERS.items())
+    if rubric.get("examples"):
+        rules += f"\nExamples: {rubric['examples']}"
     answer = client.chat_json(model, [{"role": "system", "content": INSTRUCTIONS},
                                       {"role": "user", "content": f"Search: {query}\n\nRubric:\n{rules}\n\n"
                                                                   f"Notes:\n{numbered}"}],
