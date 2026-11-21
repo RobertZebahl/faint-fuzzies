@@ -6,7 +6,9 @@ from types import SimpleNamespace
 import pytest
 
 from faint_fuzzies.ai import AiAnswerError, AiError
+from faint_fuzzies.ai.constellations import CONSTELLATION_NAMES
 from faint_fuzzies.ai.question import Answer, Context, QuestionError, answer_of, ask, resolve_names, schema
+from faint_fuzzies.domain.formats import CONSTELLATIONS
 from faint_fuzzies.domain.names import set_object_name_abbreviations
 from faint_fuzzies.domain.observer import Observer, Observers, Scope
 from tests.unit.ai.fakes import FakeClient
@@ -156,4 +158,19 @@ def test_the_first_step_shows_every_criterion_and_the_examples_choices():
     ask(client, "chat", "Galaxien", Context(COLLECTION, OBSERVERS, date(2026, 11, 21)))
     prompt = client.choices[0][0]["content"]
     assert "- has_sketch:" in prompt and "- private_grade:" in prompt
-    assert '{"criteria": ["type", "aperture"]}' in prompt
+    assert '{"criteria": ["type", "scope", "aperture"]}' in prompt
+    assert "project-deep-sky-with-binoculars" in prompt
+
+
+def test_every_constellation_has_its_latin_and_german_name():
+    assert set(CONSTELLATION_NAMES) == set(CONSTELLATIONS.values())
+    assert CONSTELLATION_NAMES["Cyg"] == ("Cygnus", "Schwan")
+
+
+@pytest.mark.parametrize("criteria, shown", [(["type", "constellation"], True), (["type"], False)])
+def test_the_constellations_names_are_shown_only_when_one_is_asked_for(criteria, shown):
+    client = FakeClient()
+    client.criteria = criteria
+    ask(client, "chat", "Planetarische Nebel in der Leier", Context(COLLECTION, OBSERVERS, date(2026, 11, 21)))
+    prompt = client.questions[0][0]["content"]
+    assert ("Lyr: Lyra, Leier" in prompt) is shown

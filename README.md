@@ -1045,7 +1045,8 @@ faint-fuzzies: filter {"type": ["Gx"], "aperture": [null, 102]}; search "details
 It needs what a Description search needs (`--data-dir`, the `ai` extra, the `[ai]` table) and replaces `--filter`
 and `--search`; `--limit`, `--min-score`, `--no-rerank` and `--output` apply as with `--search`. The filter and
 the search text are shown on stderr and come with the result as `question`
-(`{"asked": ..., "filter": ..., "text": ..., "ignored": [...]}`), so they can be corrected and run again with
+(`{"asked": ..., "criteria": [...], "filter": ..., "text": ..., "ignored": [...]}`, `criteria` being what the
+model picked in its first step), so they can be corrected and run again with
 `--filter` and `--search`.
 
 * **Criteria.** The chat model only gets the criteria a Question asks for: `type`, `constellation`, `magnitude`,
@@ -1054,8 +1055,9 @@ the search text are shown on stderr and come with the result as `question`
   `public_grade` and `private_grade`. The others stay with `--filter`.
 * **Numbers.** It does not guess a number the Question does not give, except by these conventions: thin galaxies
   are `size_ratio` from 5, superthin ones from 7, a small telescope has up to 102 mm, binoculars ("Fernglas") are
-  `optic_type` `binoculars`. Inches become millimetres; relative dates ("seit 2020", "last year") count from
-  today.
+  `optic_type` `binoculars`, "averted vision" is `public_grade` `MEDIUM` and `HARD`. Inches become millimetres;
+  "since 2020" starts on 1 January, relative dates ("last year") count from today, and a season or a month
+  ("im Winter") is no date but ignored. A constellation can be named in Latin, English or German ("im Schwan").
 * **Grades.** It uses `public_grade`, unless the Question asks for private or personal observations ("privat",
   "persönlich", "private", "personal"); then `private_grade`, on the scale of the kind of Object (see Private
   Grade). "My" or "meine" alone is `scope` `OWNER`.

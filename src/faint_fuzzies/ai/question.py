@@ -14,6 +14,7 @@ from typing import Any
 
 from faint_fuzzies.ai import AiAnswerError, AiError
 from faint_fuzzies.ai.client import AiClient
+from faint_fuzzies.ai.constellations import CONSTELLATION_NAMES
 from faint_fuzzies.domain.collection import Collection
 from faint_fuzzies.domain.filters import FilterKey, FilterSpec, FilterSpecError
 from faint_fuzzies.domain.formats import CONSTELLATIONS
@@ -32,7 +33,7 @@ CHOICE_TOKENS = 200
 # expressions, or rarely asked for), each with what the model is told about it.
 CRITERIA: dict[FilterKey, str] = {
     K.TYPE: "object types: galaxy, double star, open or globular cluster, nebula, ...",
-    K.CONSTELLATION: "IAU constellation abbreviations, e.g. \"UMa\" for Großer Bär / Ursa Major",
+    K.CONSTELLATION: "IAU constellation abbreviations, e.g. \"Lyr\" for Leier / Lyra",
     K.MAGNITUDE: "[min, max] magnitude; brighter is smaller: \"brighter than 10\" is [null, 10]",
     K.MAGNITUDE_DELTA: "[min, max] magnitude difference of a double star's two components",
     K.SEPARATION: "[min, max] separation of a double star in arcseconds",
@@ -41,7 +42,7 @@ CRITERIA: dict[FilterKey, str] = {
     K.SEEN: "the object's status: \"seen\", \"failed\" (only failed attempts), \"not_observed\"",
     K.PROJECT: "objects on that list",
     K.CATALOGUE: "objects of that catalogue file",
-    K.NAME_GROUP: "object names exactly as the question writes them (\"M 31\", \"NGC 891\", \"Albireo\")",
+    K.NAME_GROUP: "object names exactly as the question writes them (\"M 13\", \"NGC 7331\", \"Mizar\")",
     K.OBSERVER: "observations by these observers (ids below)",
     K.SCOPE: "observations by observers of this role: OWNER is the user (\"my\", \"meine\", \"ich\"), GLOBAL, "
              "PROJECT",
@@ -71,14 +72,19 @@ INSTRUCTIONS = """You turn a question an amateur astronomer asks about their obs
 English, into a filter and a search text. Answer with JSON:
 - "filter": a value for each of the criteria below, as the question gives it.
 - "text": what the observation notes must say, for a question about what was seen or noticed ("Details", \
-"Farben", "spiral arms seen"), in the question's language and without the filter's part; null when the \
-question asks for nothing in the notes.
+"Farben", "spiral arms seen"), in the question's language; null when the question asks for nothing in the \
+notes. Never repeat in the text what the filter already says (an object type, a grade such as "failed", \
+"elongated" or "averted vision", an instrument): such a question has no text.
 - "ignored": every part of the question that none of the criteria can express (a month or season, "bright" \
 without a number, a property not listed), in the question's words; empty when nothing is left over.
 Do not guess numbers the question does not give, except by these conventions:
 - thin galaxy: size_ratio [5, null]; superthin: size_ratio [7, null].
 - small telescope: aperture [null, 102].
 - binoculars, Fernglas: optic_type ["binoculars"].
+- averted vision, indirektes Sehen: public_grade ["MEDIUM", "HARD"]; barely, kaum, with averted vision: ["HARD"].
+- since (seit) a year: date [<year>-01-01, null]; in a year: [<year>-01-01, <year>-12-31].
+- a season or a month is no date: it goes to "ignored".
+- words that belong to a list's name are part of that list, no further criterion.
 Grades: a public observation states a public_grade, a private one a private_grade; never use both. Use \
 public_grade, unless the question asks for private or personal observations ("privat", "persönlich", \
 "private", "personal"): then private_grade. A double star has no public_grade.
@@ -90,8 +96,7 @@ with direct vision, 3 barely visible with direct vision, 4 needed averted vision
 averted vision, 6 failed.
 - private_grade of a resolvable open cluster: 1 showpiece, 2 conspicuous, 3 clearly visible, 4 barely stands \
 out, 5 very inconspicuous, 6 failed.
-A range is [min, max], null leaving a side open. Today is {today}: "last year", "since 2020" become date \
-ranges.
+A range is [min, max], null leaving a side open. Today is {today}: "last year" becomes a date range.
 
 Criteria:
 {criteria}
@@ -102,7 +107,7 @@ Lists (project): {projects}
 
 Catalogues: {catalogues}
 
-Observers (id: name): {observers}
+Observers (id: name): {observers}{constellations}
 
 Examples:
 {examples}"""
@@ -111,9 +116,13 @@ CHOICE_INSTRUCTIONS = """You read a question an amateur astronomer asks about th
 or English, and name the filter criteria it asks for, from the list below. Name only those the question states; \
 most questions name one to three, and many words name none (they are about what was seen in the notes, or about \
 nothing a criterion can express). Answer with JSON: {{"criteria": [...]}}.
-- "my", "meine", "ich" (the user's own observations): scope.
-- thin or superthin galaxies: size_ratio. A small telescope, inches, millimetres: aperture. Binoculars, \
-Fernglas, naked eye: optic_type.
+- A kind of object (galaxies, Galaxien, double stars, Doppelsterne, nebulae, clusters, ...): type, always.
+- A named object (M 13, NGC 7331, Mizar): name_group. A person's name: observer. A constellation (Leier, \
+Lyra, Kleiner Löwe): constellation. catalogue only when the question names a catalogue file.
+- "my", "meine", "ich", "habe ich", "I" (the user's own observations): scope.
+- thin or superthin galaxies: size_ratio. A small telescope, inches, millimetres: aperture, never optic_type. \
+Binoculars, Fernglas, naked eye: optic_type.
+- Words that belong to the name of a list ({projects}) are part of that list: project, no further criterion.
 - How the object went (easy, averted vision, failed): public_grade; private_grade only when the question asks \
 for private or personal observations ("privat", "persönlich", "private", "personal").
 - A year, a date, "since", "last year": date. A season or month alone is no criterion.
@@ -124,17 +133,24 @@ Criteria:
 Examples:
 {examples}"""
 
-EXAMPLES: tuple[tuple[str, dict[str, Any]], ...] = (
-    ("Welche Galaxien zeigten Details mit bis zu 4 Zoll Öffnung?",
-     {"filter": {"type": ["Gx"], "aperture": [None, 102]}, "text": "Details gesehen", "ignored": []}),
+EXAMPLES: tuple[tuple[str, dict[str, Any]], ...] = (  # made up: none is one of the test Questions
+    ("Galaxienhaufen, in denen ich mit bis zu 6 Zoll Öffnung einzelne Galaxien gesehen habe",
+     {"filter": {"type": ["GxC"], "scope": ["OWNER"], "aperture": [None, 152]}, "text": "einzelne Galaxien gesehen",
+      "ignored": []}),
     ("Double stars in Cygnus closer than 3 arcseconds that I split",
      {"filter": {"type": ["**"], "constellation": ["Cyg"], "separation": [None, 3], "scope": ["OWNER"]},
       "text": "components split", "ignored": []}),
-    ("Meine privaten Beobachtungen von M 31 mit dem Fernglas, nur indirekt gesehen",
-     {"filter": {"name_group": ["M 31"], "scope": ["OWNER"], "optic_type": ["binoculars"],
-                 "private_grade": [4, 5]}, "text": None, "ignored": []}),
+    ("Private Beobachtungen von M 31 mit dem Fernglas, nur indirekt gesehen",
+     {"filter": {"name_group": ["M 31"], "optic_type": ["binoculars"], "private_grade": [4, 5]}, "text": None,
+      "ignored": []}),
     ("Helle Kugelsternhaufen, im Winter beobachtet, mit Skizze",
      {"filter": {"type": ["GC"], "has_sketch": True}, "text": None, "ignored": ["Helle", "im Winter"]}),
+    ("Open clusters in Perseus I observed since 2019",
+     {"filter": {"type": ["OC"], "constellation": ["Per"], "scope": ["OWNER"], "date": ["2019-01-01", None]},
+      "text": None, "ignored": []}),
+    ("Emission nebulae in Orion that needed averted vision, seen in March",
+     {"filter": {"type": ["EN"], "constellation": ["Ori"], "public_grade": ["MEDIUM", "HARD"]}, "text": None,
+      "ignored": ["seen in March"]}),
 )
 
 
@@ -191,6 +207,9 @@ def ask(client: AiClient, model: str, question: str, context: Context) -> Answer
         types=", ".join(f"{code} {name}" for code, name in TYPE_NAMES.items()),
         projects=", ".join(LISTS), catalogues=", ".join(catalogues) or "none",
         observers=", ".join(f"{o.id}: {o.firstname} {o.surname}" for o in known) or "none",
+        constellations="\n\nConstellations (abbreviation: Latin, German): " + ", ".join(
+            f"{code}: {latin}, {german}" for code, (latin, german) in CONSTELLATION_NAMES.items())
+        if K.CONSTELLATION in chosen else "",
         examples="\n".join(f"Question: {q}\nAnswer: {json.dumps(a, ensure_ascii=False)}" for q, a in EXAMPLES))
     try:
         raw = client.chat_json(model, [{"role": "system", "content": prompt},
@@ -209,7 +228,7 @@ def choose_criteria(client: AiClient, model: str, question: str) -> tuple[Filter
     :raises AiError: when the server fails (QuestionError: when the answer is not JSON)
     """
     prompt = CHOICE_INSTRUCTIONS.format(
-        criteria="\n".join(f"- {key}: {about}" for key, about in CRITERIA.items()),
+        criteria="\n".join(f"- {key}: {about}" for key, about in CRITERIA.items()), projects=", ".join(LISTS),
         examples="\n".join(f"Question: {q}\nAnswer: {json.dumps({'criteria': list(a['filter'])})}"
                            for q, a in EXAMPLES))
     choice_schema = {"type": "object",

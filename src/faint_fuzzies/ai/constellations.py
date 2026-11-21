@@ -1,0 +1,36 @@
+"""The 88 IAU constellations by their abbreviation, with their Latin name (the one English uses too) and their
+German name: what a Question's model is shown when it fills in a constellation, so "im Schwan" or "in Ursa Major"
+become "Cyg" and "UMa" (see question.py)."""
+
+CONSTELLATION_NAMES: dict[str, tuple[str, str]] = {
+    "And": ("Andromeda", "Andromeda"), "Ant": ("Antlia", "Luftpumpe"), "Aps": ("Apus", "Paradiesvogel"),
+    "Aqr": ("Aquarius", "Wassermann"), "Aql": ("Aquila", "Adler"), "Ara": ("Ara", "Altar"),
+    "Ari": ("Aries", "Widder"), "Aur": ("Auriga", "Fuhrmann"), "Boo": ("Bootes", "Bärenhüter"),
+    "Cae": ("Caelum", "Grabstichel"), "Cam": ("Camelopardalis", "Giraffe"), "Cnc": ("Cancer", "Krebs"),
+    "CVn": ("Canes Venatici", "Jagdhunde"), "CMa": ("Canis Major", "Großer Hund"),
+    "CMi": ("Canis Minor", "Kleiner Hund"), "Cap": ("Capricornus", "Steinbock"), "Car": ("Carina", "Kiel des Schiffs"),
+    "Cas": ("Cassiopeia", "Kassiopeia"), "Cen": ("Centaurus", "Zentaur"), "Cep": ("Cepheus", "Kepheus"),
+    "Cet": ("Cetus", "Walfisch"), "Cha": ("Chamaeleon", "Chamäleon"), "Cir": ("Circinus", "Zirkel"),
+    "Col": ("Columba", "Taube"), "Com": ("Coma Berenices", "Haar der Berenike"),
+    "CrA": ("Corona Australis", "Südliche Krone"), "CrB": ("Corona Borealis", "Nördliche Krone"),
+    "Crv": ("Corvus", "Rabe"), "Crt": ("Crater", "Becher"), "Cru": ("Crux", "Kreuz des Südens"),
+    "Cyg": ("Cygnus", "Schwan"), "Del": ("Delphinus", "Delfin"), "Dor": ("Dorado", "Schwertfisch"),
+    "Dra": ("Draco", "Drache"), "Equ": ("Equuleus", "Füllen"), "Eri": ("Eridanus", "Eridanus"),
+    "For": ("Fornax", "Chemischer Ofen"), "Gem": ("Gemini", "Zwillinge"), "Gru": ("Grus", "Kranich"),
+    "Her": ("Hercules", "Herkules"), "Hor": ("Horologium", "Pendeluhr"), "Hya": ("Hydra", "Wasserschlange"),
+    "Hyi": ("Hydrus", "Kleine Wasserschlange"), "Ind": ("Indus", "Inder"), "Lac": ("Lacerta", "Eidechse"),
+    "Leo": ("Leo", "Löwe"), "LMi": ("Leo Minor", "Kleiner Löwe"), "Lep": ("Lepus", "Hase"),
+    "Lib": ("Libra", "Waage"), "Lup": ("Lupus", "Wolf"), "Lyn": ("Lynx", "Luchs"), "Lyr": ("Lyra", "Leier"),
+    "Men": ("Mensa", "Tafelberg"), "Mic": ("Microscopium", "Mikroskop"), "Mon": ("Monoceros", "Einhorn"),
+    "Mus": ("Musca", "Fliege"), "Nor": ("Norma", "Winkelmaß"), "Oct": ("Octans", "Oktant"),
+    "Oph": ("Ophiuchus", "Schlangenträger"), "Ori": ("Orion", "Orion"), "Pav": ("Pavo", "Pfau"),
+    "Peg": ("Pegasus", "Pegasus"), "Per": ("Perseus", "Perseus"), "Phe": ("Phoenix", "Phönix"),
+    "Pic": ("Pictor", "Maler"), "Psc": ("Pisces", "Fische"), "PsA": ("Piscis Austrinus", "Südlicher Fisch"),
+    "Pup": ("Puppis", "Achterdeck des Schiffs"), "Pyx": ("Pyxis", "Schiffskompass"), "Ret": ("Reticulum", "Netz"),
+    "Sge": ("Sagitta", "Pfeil"), "Sgr": ("Sagittarius", "Schütze"), "Sco": ("Scorpius", "Skorpion"),
+    "Scl": ("Sculptor", "Bildhauer"), "Sct": ("Scutum", "Schild"), "Ser": ("Serpens", "Schlange"),
+    "Sex": ("Sextans", "Sextant"), "Tau": ("Taurus", "Stier"), "Tel": ("Telescopium", "Teleskop"),
+    "Tri": ("Triangulum", "Dreieck"), "TrA": ("Triangulum Australe", "Südliches Dreieck"), "Tuc": ("Tucana", "Tukan"),
+    "UMa": ("Ursa Major", "Großer Bär"), "UMi": ("Ursa Minor", "Kleiner Bär"), "Vel": ("Vela", "Segel des Schiffs"),
+    "Vir": ("Virgo", "Jungfrau"), "Vol": ("Volans", "Fliegender Fisch"), "Vul": ("Vulpecula", "Fuchs"),
+}
