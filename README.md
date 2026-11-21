@@ -1090,6 +1090,17 @@ model picked in its first step), so they can be corrected and run again with
   own-catalogue Object of its own (see [CONTEXT.md](CONTEXT.md), "Own catalogue") - and the Observer
   filter defaults to the owner alongside it, so the Objects table starts at what has actually been
   observed rather than the WDS catalogue's own ~170k objects. "Reset filter" restores both.
+* **Questions.** With an `[ai]` table (and the `ai` extra), Browse has a Question field above the filter bar (see
+  [Questions](#questions)). `serve` starts the model server in the background as the data loads - the field
+  says what it is doing and is disabled until the server answers - brings the description index up to date
+  after it and after every Reload, and stops the server with the app when it started it. A Question empties
+  the filter bar, puts its filter into the advanced filter and its search text into a chip next to the field,
+  and runs at once; what it could not express is warned about under the field, and a rejected answer shown
+  there in red. While the chip is there the Objects table is the Description search's: at most `[ai].limit`
+  Objects, ranked by their best verdict and score, with a Match column, and the detail panel lists an
+  Object's matching observations first, each with its verdict and score. Clicking the chip edits the search
+  text, removing it brings back the plain filter, and "Apply filter" searches again over the new matches -
+  each search waits for the model server again (15-20 s). "Reset filter" removes the chip too.
 * **Sessions table.** Browse's Sessions table selects a Session to filter the Objects table down to it (the
   same `session` criterion above) and shows the Session's own detail on the right. While a Session is selected,
   the Objects table is also sorted by it instead of by catalogue order: earliest-observed-first, the order the

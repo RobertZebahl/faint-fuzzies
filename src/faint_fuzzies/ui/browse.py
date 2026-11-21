@@ -2,14 +2,15 @@
 
 Read-only for now: it shows everything a Match/Session/Object/Observation carries, but does not yet let
 the user change any of it (that is a separate piece of work, see the project design notes)."""
+import datetime as dt
 import html
 import json
 import re
 from collections.abc import Iterable, Sequence
 from datetime import datetime
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
-from nicegui import ui
+from nicegui import background_tasks, run, ui
 
 from faint_fuzzies.domain.catalogue import Catalogue
 from faint_fuzzies.domain.collection import Collection
@@ -28,6 +29,10 @@ from faint_fuzzies.finding_index import FindingIndex
 from faint_fuzzies.ui.facts import object_facts
 from faint_fuzzies.ui.log import object_link
 from faint_fuzzies.ui.media import get_dss_status, get_media_urls, get_orbit_status
+
+if TYPE_CHECKING:
+    from faint_fuzzies.ai.search import Hit, SearchResult
+    from faint_fuzzies.ui.question_bar import QuestionBar
 from faint_fuzzies.ui.nav import header
 from faint_fuzzies.ui.state import AppState
 
@@ -70,6 +75,8 @@ OBJECT_COLUMNS = [
     {"name": "magnitude", "label": "Magnitude", "field": "magnitude_value", "align": "center", "sortable": True},
     {"name": "size", "label": "Size / Separation", "field": "size_value", "align": "center", "sortable": True},
     {"name": "observations", "label": "Observations", "field": "observations", "align": "center", "sortable": True},
+    # only while a Description search runs (see BrowsePage._render_matches): its verdict and score, ranked
+    {"name": "match", "label": "Match", "field": "match_rank", "align": "center", "sortable": True},
 ]
 
 # the fields whose missing values (an Object with no magnitude, size or separation) sort last in either direction,
@@ -225,6 +232,7 @@ _OBJECT_ROW_BODY = r"""
         <q-td key="magnitude" :props="props">{{ props.row.magnitude }}</q-td>
         <q-td key="size" :props="props">{{ props.row.size }}</q-td>
         <q-td key="observations" :props="props">{{ props.row.observations }}</q-td>
+        <q-td key="match" :props="props">{{ props.row.match }}</q-td>
     </q-tr>
     <template v-if="props.row.is_group" v-for="member in props.row.members" :key="member.id">
         <q-tr v-show="props.expand" style="cursor: pointer" :style="{color: member.color}"
@@ -257,6 +265,7 @@ _OBJECT_ROW_BODY = r"""
             <q-td key="magnitude" :props="props">{{ member.magnitude }}</q-td>
             <q-td key="size" :props="props">{{ member.size }}</q-td>
             <q-td key="observations" :props="props">{{ member.observations }}</q-td>
+            <q-td key="match" :props="props"></q-td>
         </q-tr>
     </template>
     <template v-if="props.row.has_references" v-for="reference in props.row.references" :key="reference.id">
@@ -290,6 +299,7 @@ _OBJECT_ROW_BODY = r"""
             <q-td key="magnitude" :props="props">{{ reference.magnitude }}</q-td>
             <q-td key="size" :props="props">{{ reference.size }}</q-td>
             <q-td key="observations" :props="props">{{ reference.observations }}</q-td>
+            <q-td key="match" :props="props"></q-td>
         </q-tr>
     </template>
 """
@@ -363,12 +373,22 @@ class BrowsePage:
         self._thumbnail_signature: tuple | None = None  # what is currently on screen; see _render_thumbnails
         self._default_catalogue: list[str] = []  # restored by _reset_filter, not just an empty selection
         self._default_observer: list[str] = []  # restored by _reset_filter, not just an empty selection
+        # the Description search: its text (the chip's), and the matches it found by id(Object), best first
+        self._search_text: str | None = None
+        self._results: dict[int, SearchResult] = {}
+        self._searches = 0  # counts the searches started: only the newest one's outcome is shown
+        self._running = 0  # the searches still waiting for the model server
+        self._shown_hits: dict[int, Hit] = {}  # the shown Object's observations that are hits, by id(Observation)
+        self.question_bar: QuestionBar | None = None
         self._build_lightbox()
 
         header("browse", state, self._on_reloaded)
 
         with ui.splitter(value=70, limits=(30, 100)).classes("w-full").style("height: calc(100vh - 90px)") as splitter:
             with splitter.before, ui.column().classes("w-full max-w-full p-4 gap-3 h-full").style("overflow-y: auto"):
+                if state.ai is not None:  # only with an [ai] table: the Question field
+                    from faint_fuzzies.ui import question_bar
+                    self.question_bar = question_bar.QuestionBar(state.ai, self._ask, self._search_again)
                 self._build_filter_bar()
 
                 self.session_expansion = ui.expansion(icon="calendar_month").classes("w-full")
@@ -417,6 +437,7 @@ class BrowsePage:
         for select in (self.type_select, self.constellation_select, self.observer_select):
             select.value = []
         self._finding_filter = []
+        self._clear_search()
         first = obj.names[0] if obj.names else (obj.groups[0] if obj.groups else None)
         self.name_input.value = re.escape(first) if first else ""
         self.advanced_input.value = ""
@@ -517,8 +538,81 @@ class BrowsePage:
             select.value = []
         self.advanced_input.value = ""
         self._finding_filter = []
+        self._clear_search()
         self._render_finding_summary()
         self._apply_filter()
+
+    # ---- Questions and the Description search ----------------------------
+
+    def _clear_search(self) -> None:
+        """Removes the search text's chip and the Question's message (the filter bar is left as it is)."""
+        self._search_text = None
+        if self.question_bar is not None:
+            self.question_bar.show_text(None)
+            self.question_bar.show_message("")
+
+    async def _ask(self, question: str) -> None:
+        """Asks `question` and puts its answer in place: the filter field emptied (a Question names every criterion
+        it wants, as `filter --question` does), its filter in the advanced filter, its search text as the chip,
+        what it could not express under the field - and then runs it."""
+        field, service = self.question_bar, self.state.ai
+        assert field is not None and service is not None
+        from faint_fuzzies.ai import AiError
+        from faint_fuzzies.ai.question import Context
+        data = self.state.data
+        field.busy = True
+        field.show_message("")
+        try:
+            answer = await run.io_bound(service.ask, question,
+                                        Context(data.collection, data.observers, dt.datetime.now().astimezone().date()))
+        except AiError as exc:
+            field.show_message(str(exc), error=True)
+            return
+        finally:
+            field.busy = False
+        if answer is None:  # the app is shutting down
+            return
+        self.catalogue_select.value = []
+        self.observer_select.value = []
+        self.name_input.value = ""
+        for select in (self.type_select, self.constellation_select):
+            select.value = []
+        self._finding_filter = []
+        self._render_finding_summary()
+        self.advanced_input.value = json.dumps(answer.filter, ensure_ascii=False) if answer.filter else ""
+        self._search_text = answer.text
+        field.show_text(answer.text)
+        from faint_fuzzies.ui.question_bar import ignored_text
+        field.show_message(ignored_text(answer.ignored) if answer.ignored else "")
+        self._apply_filter()
+
+    async def _search_again(self, text: str | None) -> None:
+        """The chip's search text edited (or removed: None): the current filter searched again."""
+        self._search_text = text
+        self._apply_filter()
+
+    async def _search(self, matches: list, number: int) -> None:
+        """Ranks `matches` by the search text through the model server and shows the best of them, unless a newer
+        search (`number` counts them) has started meanwhile."""
+        field, service, text = self.question_bar, self.state.ai, self._search_text
+        assert field is not None and service is not None and text is not None
+        from faint_fuzzies.ai import AiError
+        self._running += 1
+        field.busy = True
+        self.objects_label.text = "Objects (searching the descriptions…)"
+        try:
+            results = await run.io_bound(service.search, matches, text)
+        except AiError as exc:
+            if number == self._searches:
+                field.show_message(str(exc), error=True)
+                self.objects_label.text = f"Objects ({len(self.objects_table.rows)})"
+            return
+        finally:
+            self._running -= 1
+            field.busy = self._running > 0
+        if number != self._searches or results is None:
+            return
+        self._render_matches([result.match for result in results], [], results)
 
     def _apply_filter(self) -> None:
         """Builds the filter from the bar's current fields and re-fills the Objects table with its matches
@@ -538,8 +632,28 @@ class BrowsePage:
         except FilterSpecError as exc:
             ui.notify(f"Filter: {exc}", type="negative")
             return
+        self._searches += 1
+        if self._search_text is not None and self.question_bar is not None:
+            # the search's ranking wins over a selected Session's order; it takes a while, so it is shown later
+            background_tasks.create(self._search(matches, self._searches), name="description search")
+            return
         if self.selected_session is not None:
             matches = sorted(matches, key=lambda m: _earliest_in_session(m, self.selected_session))
+        self._render_matches(matches, invalid, None)
+
+    def _render_matches(self, matches: list, invalid: list[Object], results: "list[SearchResult] | None") -> None:
+        """Fills the Objects table: the invalid Objects first, then the matches - with a Description search's
+        results, ranked, with their Match column.
+
+        :param matches: the matches, in the order to show
+        :param invalid: the Objects that cannot be used
+        :param results: the search's results, one per match in the same order; None without a search
+        """
+        data = self.state.data
+        findings = data.findings
+        self._results = {id(result.match.object): result for result in results or ()}
+        self.objects_table.columns = OBJECT_COLUMNS if results is not None else [
+            column for column in OBJECT_COLUMNS if column["name"] != "match"]
         self._objects_by_id = {id(o): o for o in invalid} | {id(m.object): m.object for m in matches}
         # a Group's members are shown (and so must be clickable) whether or not the current filter would
         # itself have matched them - membership does not depend on it, see _group_columns
@@ -550,7 +664,8 @@ class BrowsePage:
                 self._objects_by_id.setdefault(id(reference), reference)
         # the Objects that cannot be used come first: they are the ones to look at
         self.objects_table.rows = [_invalid_row(o, findings) for o in invalid] + [
-            _object_row(m, data.collection, data.references, findings) for m in matches]
+            _object_row(m, data.collection, data.references, findings) | _match_columns(results, position)
+            for position, m in enumerate(matches)]
         self.objects_table.update()
         self.objects_label.text = f"Objects ({len(self.objects_table.rows)})"
 
@@ -704,10 +819,20 @@ class BrowsePage:
             ui.separator()
 
             all_observations = list(obj.all_observations)
+            result = self._results.get(id(obj))
+            self._shown_hits = {id(hit.found.observation): hit for hit in result.hits} if result else {}
+            # a Description search's hits first, best first, then this session's
+            by_id = {id(o): o for o in all_observations}
+            hit_observations = [by_id[key] for key in self._shown_hits if key in by_id]
             session_observations = [o for o in all_observations
-                                    if self.selected_session is not None and o.session is self.selected_session]
-            session_ids = {id(o) for o in session_observations}
+                                    if self.selected_session is not None and o.session is self.selected_session
+                                    and id(o) not in self._shown_hits]
+            session_ids = {id(o) for o in session_observations} | self._shown_hits.keys()
             remaining = [o for o in all_observations if id(o) not in session_ids]
+
+            if hit_observations:
+                ui.label(f"Matching the search ({len(hit_observations)})").classes("text-subtitle2")
+                self._observation_list(hit_observations)
 
             if session_observations:
                 ui.label(f"This session ({len(session_observations)})").classes("text-subtitle2")
@@ -821,6 +946,10 @@ class BrowsePage:
                 ui.label(self._optic_name(observation)).classes("w-24 text-weight-bold")
                 _visibility_table(observation, left_width, right_width)
             ui.label(_conditions_text(observation)).classes("flex-grow text-body2 text-weight-bold ml-4")
+            hit = self._shown_hits.get(id(observation))
+            if hit is not None:
+                ui.badge(_match_text(hit.verdict, hit.score), color="positive" if hit.verdict == "yes" else "warning") \
+                    .tooltip("How well its notes fit the Description search").mark("match-badge")
             ui.label(_who(observation)).classes("w-28 text-caption text-weight-bold text-right")
         for language, text in observation.descriptions:
             with ui.row().classes("w-full items-baseline gap-2 no-wrap pl-2"):
@@ -1026,6 +1155,20 @@ class BrowsePage:
 # field also needs the reverse direction (most severe highest) so a click on the header brings errors up
 _FINDING_ORDER = {ERROR: 0, WARNING: 1, INFO: 2}
 _FINDING_RANK = {ERROR: 3, WARNING: 2, INFO: 1}
+
+
+def _match_text(verdict: str | None, score: float) -> str:
+    """A hit's verdict and score, as the Match column and the detail panel show them ("yes 0.71")."""
+    return f"{verdict} {score:.2f}" if verdict else f"{score:.2f}"
+
+
+def _match_columns(results: "list[SearchResult] | None", position: int) -> dict:
+    """The Match column of the `position`-th match: its best hit's verdict and score, ranked by position (so the
+    column sorts back into the search's order); nothing without a search."""
+    if results is None:
+        return {"match": "", "match_rank": None}
+    result = results[position]
+    return {"match": _match_text(result.verdict, result.score), "match_rank": position}
 
 
 def _finding_text(finding: Finding) -> str:

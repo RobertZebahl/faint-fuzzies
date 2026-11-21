@@ -1,5 +1,6 @@
 """Entry point for "faint-fuzzies serve": a local, single-user web app over one data directory."""
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from nicegui import app as nicegui_app
 from nicegui import ui
@@ -13,18 +14,25 @@ from faint_fuzzies.ui.site import build as build_site
 from faint_fuzzies.ui.state import AppState
 from faint_fuzzies.ui.statistics import build as build_statistics
 
+if TYPE_CHECKING:
+    from faint_fuzzies.ai.service import AiService
 
-def run_app(data_dir: Path, port: int, fetch_dss: bool = True, generate_orbits: bool = True) -> None:
+
+def run_app(data_dir: Path, port: int, fetch_dss: bool = True, generate_orbits: bool = True,
+            ai: "AiService | None" = None) -> None:
     """Builds the app's state and pages, then runs the NiceGUI server until stopped. Blocks until shutdown.
 
     :param data_dir: the data directory the app serves
     :param port: the local port to listen on
     :param fetch_dss: whether to fetch missing DSS images on load (see AppState)
     :param generate_orbits: whether to generate missing orbit diagrams on load (see AppState)
+    :param ai: the model server's service, None without the AI features (see AppState)
     """
-    state = AppState(data_dir, step_reporter(), fetch_dss, generate_orbits)
+    state = AppState(data_dir, step_reporter(), fetch_dss, generate_orbits, ai)
     mount_static_media(data_dir)
     nicegui_app.on_shutdown(state.site_server.stop)  # the Site page's PHP preview server, if it was ever started
+    if ai is not None:
+        nicegui_app.on_shutdown(ai.stop)  # the model server, when the app started it
 
     @ui.page("/")
     def index(request: Request) -> None:

@@ -1,6 +1,7 @@
 """The app's one shared, in-memory copy of the data directory. Single-user, so one state for every
 client; Reload re-reads everything from disk and every open page picks that up."""
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from faint_fuzzies.datadir import orbits_file, read_optic_names
 from faint_fuzzies.domain import dss
@@ -25,6 +26,9 @@ from faint_fuzzies.media_pool import (
 from faint_fuzzies.site.server import SiteServer
 from faint_fuzzies.tasks import TaskPool
 
+if TYPE_CHECKING:
+    from faint_fuzzies.ai.service import AiService
+
 # how much of the initial-load progress bar goes to the (slow) static catalogues versus the (fast)
 # rest; a Reload only redoes the rest, and so reports across the full 0..1 range on its own
 STATIC_SHARE = 0.9
@@ -40,10 +44,12 @@ class AppState:
         or fetched
     :param generate_orbits: False leaves the orbit diagrams to what is already in the data directory: none
         is queued or drawn
+    :param ai: the model server's service, when there is an [ai] table (and the ai extra): started once the
+        data is loaded, its index brought up to date on every Reload; None without the AI features
     """
 
     def __init__(self, data_dir: Path, on_progress: ProgressCallback | None = None, fetch_dss: bool = True,
-                 generate_orbits: bool = True):
+                 generate_orbits: bool = True, ai: "AiService | None" = None):
         self.data_dir = data_dir
         self.fetch_dss = fetch_dss
         self.generate_orbits = generate_orbits
@@ -57,6 +63,9 @@ class AppState:
         self.site_server = SiteServer()  # the Site page's local PHP preview server, started on the first build
         self._refresh_media_tasks()
         self.task_pool.start()
+        self.ai = ai
+        if ai is not None:
+            ai.start(self.data.collection.objects)
 
     def reload(self, on_progress: ProgressCallback | None = None) -> None:
         """Re-reads the data directory (catalogues, sessions, observers, optic names) and re-seeds the
@@ -68,6 +77,8 @@ class AppState:
         self.data = load_data_dir(self.data_dir, self._static, on_progress)
         self.optic_names = _load_optic_names(self.data_dir)
         self._refresh_media_tasks()
+        if self.ai is not None:
+            self.ai.refresh(self.data.collection.objects)
 
     def _refresh_media_tasks(self) -> None:
         """Seeds the DSS/orbit task queue with whatever is currently missing on disk, and (re)computes

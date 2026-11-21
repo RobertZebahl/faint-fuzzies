@@ -7,7 +7,7 @@ express it lists as ignored. Object names it passes on as written, and the tool 
 the answer is checked like any filter, and one that is not valid is rejected, never guessed at."""
 import difflib
 import json
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from datetime import date
 from typing import Any
@@ -195,13 +195,15 @@ class Answer:
     criteria: tuple[str, ...] = ()
 
 
-def ask(client: AiClient, model: str, question: str, context: Context) -> Answer:
+def ask(client: AiClient, model: str, question: str, context: Context,
+        on_progress: Callable[[str, float], None] | None = None) -> Answer:
     """The FilterSpec and search text `question` stands for (see the module docstring).
 
     :param client: the model server
     :param model: the chat model
     :param question: the Question
     :param context: what it is asked against
+    :param on_progress: told (step, fraction done) before each of the two requests
     :returns: the answer, its filter a valid FilterSpec
     :raises AiError: when the server fails (QuestionError: when the model's filter is not valid, or a name is
         not found)
@@ -209,6 +211,8 @@ def ask(client: AiClient, model: str, question: str, context: Context) -> Answer
     catalogues = [catalogue.name for catalogue in context.collection.catalogues]
     known = sorted(context.observers or (), key=lambda o: o.id)
     names = tuple(o.name for o in known)
+    if on_progress:
+        on_progress(f"choosing the criteria with {model}", 0.0)
     chosen = corrected(question, choose_criteria(client, model, question), names)
     criteria = "\n".join(f"- {key}: {CRITERIA[key]}" for key in chosen) or "none: the filter stays empty"
     prompt = INSTRUCTIONS.format(
@@ -220,6 +224,8 @@ def ask(client: AiClient, model: str, question: str, context: Context) -> Answer
             f"{code}: {latin}, {german}" for code, (latin, german) in CONSTELLATION_NAMES.items())
         if K.CONSTELLATION in chosen else "",
         examples="\n".join(f"Question: {q}\nAnswer: {json.dumps(a, ensure_ascii=False)}" for q, a in EXAMPLES))
+    if on_progress:
+        on_progress(f"filling in {', '.join(map(str, chosen)) or 'the search text'} with {model}", 0.5)
     try:
         raw = client.chat_json(model, [{"role": "system", "content": prompt},
                                        {"role": "user", "content": f"Question: {question}"}],

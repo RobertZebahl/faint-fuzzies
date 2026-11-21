@@ -1207,8 +1207,27 @@ def _run_serve(args: argparse.Namespace) -> int:
     from faint_fuzzies.config import resolve_data_dir
     from faint_fuzzies.ui.app import run_app
     data_dir = resolve_data_dir(args.data_dir)
-    run_app(data_dir, args.port, fetch_dss=not args.no_dss_fetch, generate_orbits=not args.no_orbits_generation)
+    run_app(data_dir, args.port, fetch_dss=not args.no_dss_fetch, generate_orbits=not args.no_orbits_generation,
+            ai=_app_ai(data_dir))
     return EXIT_OK
+
+
+def _app_ai(data_dir: Path) -> Any:
+    """The app's model server service (see ai.service), None when there is no [ai] table; without the `ai`
+    extra a warning, and the app runs without the AI features.
+
+    :raises CatalogueError: when the [ai] table is invalid
+    """
+    ai_config = read_ai_config()
+    if ai_config is None:
+        return None
+    try:
+        from faint_fuzzies.ai.service import AiService
+    except ImportError:
+        print("faint-fuzzies: warning: the [ai] table needs the 'ai' extra (pip install 'faint-fuzzies[ai]'); "
+              "running without Questions", file=sys.stderr)
+        return None
+    return AiService(ai_config, data_dir)
 
 
 def _run_upload(args: argparse.Namespace) -> int:
