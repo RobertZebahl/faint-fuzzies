@@ -158,6 +158,7 @@ faint-fuzzies filter   (--data-dir DIR | --catalogue FILE [--catalogue FILE ...]
 faint-fuzzies validate (--data-dir DIR | FILE [FILE ...] [--sessions FILE] [--observers FILE --community FORMAT OBSERVER FILE ...] [--object-name-abbreviations FILE] [--optic-names FILE]) [--references] [--duplicate-names] [--output FILE]
 faint-fuzzies format   (--check | --write) (--data-dir DIR | [FILE ...] [--sessions FILE ...]) [--output FILE]
 faint-fuzzies list     (global | project-double-stars | project-deep-sky-with-binoculars) (--data-dir DIR | --catalogue FILE [--catalogue FILE ...] [--observers FILE --community FORMAT OBSERVER FILE ...] [--object-name-abbreviations FILE]) [--sublist NAME] [--output FILE]
+faint-fuzzies eval-ai  --data-dir DIR [--output FILE]
 faint-fuzzies serve    [--data-dir DIR] [--port PORT] [--no-dss-fetch] [--no-orbits-generation]
 faint-fuzzies clean-dss --data-dir DIR [--dry-run] [--output FILE]
 faint-fuzzies clean-orbits --data-dir DIR [--all] [--dry-run] [--output FILE]
@@ -227,6 +228,7 @@ dss/<catalogue>/                                                   generated DSS
 orbits/                                                             generated orbit diagram cache (see below)
 site-build/                                                         the app's own built website (see below); never read, only written
 cache/ai/                                                           generated Description search index (see Description search); safe to delete
+observations/owner/ai_eval/rerank.json                             the test set of `eval-ai` (optional, see Description search)
 ```
 
 `catalogues/`, `observations/global/` and `observations/projects/` hold only external data — never the own
@@ -994,6 +996,14 @@ with none; the others are ranked by their best verdict (`yes` before `partly`), 
 observation that is not a hit). This takes some seconds per search, depending on the chat model and the GPU;
 judgements are not cached, since they depend on the search text. `--no-rerank` ranks by the embeddings alone, as
 described above, which is quicker and shows what reranking changes.
+
+**Measuring the reranking.** `eval-ai --data-dir DIR` judges a test set of hand-judged notes with the chat model
+and reports how many verdicts agree, a confusion count (expected -> got), every case that disagrees, and the
+seconds it took - so a change of prompt or model shows in numbers. The test set is
+`observations/owner/ai_eval/rerank.json` in the data directory, a JSON list of
+`{"search": "...", "note": "...", "expected": "yes" | "partly" | "no", "object": "..."}` (`object` is optional and
+only shown). It holds observation texts, so it belongs to the data directory, never to the repository. What counts
+as a Detail is defined in [CONTEXT.md](CONTEXT.md).
 
 **The index.** The first search embeds every Description of the data directory (minutes on a GPU, longer on a CPU)
 and keeps the vectors in `cache/ai/embeddings-<model>.npz`; later searches only send texts that are new or were

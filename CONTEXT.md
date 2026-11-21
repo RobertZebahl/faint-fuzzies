@@ -211,6 +211,12 @@ Finding the Observations whose Descriptions mean something, not just contain cer
 It ranks the Observations by how well they fit and never gives a plain yes or no.
 _Avoid_: full-text search, AI search
 
+**Detail**:
+Something an Observer saw inside an Object beyond its overall shape, size and brightness: spiral arms, a dust lane,
+a dark lane, knots, a bar. A brighter centre is not a Detail. A Description search for a Detail also finds its more
+specific kinds (a dust lane is a structure).
+_Avoid_: structure, feature
+
 **Question**:
 A request put in natural language, German or English, that stands for a filter and, optionally, a Description
 search.

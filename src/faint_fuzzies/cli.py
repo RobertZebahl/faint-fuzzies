@@ -241,6 +241,13 @@ def _build_parser() -> argparse.ArgumentParser:
     _add_output_option(site_parser)
     site_parser.set_defaults(handler=_run_build_site)
 
+    eval_parser = commands.add_parser(
+        "eval-ai", help="measure the chat model's judgements against the test set of a data directory")
+    eval_parser.add_argument("--data-dir", type=Path, required=True, metavar="DIR",
+                             help="the data directory, whose observations/owner/ai_eval/rerank.json is used")
+    _add_output_option(eval_parser)
+    eval_parser.set_defaults(handler=_run_eval_ai)
+
     serve_parser = commands.add_parser("serve", help="run the local web app for browsing and editing")
     serve_parser.add_argument("--data-dir", type=Path, metavar="DIR",
                               help="a data directory (see the README); overrides the config file")
@@ -535,19 +542,47 @@ def _search_config(args: argparse.Namespace) -> AiConfig | None:
         raise UsageError("--search needs a text")
     if args.data_dir is None:
         raise UsageError("--search needs --data-dir, where the description index is cached")
-    try:
-        import numpy  # noqa: F401  # pylint: disable=unused-import
-    except ImportError as exc:
-        raise UsageError("--search needs the 'ai' extra (pip install 'faint-fuzzies[ai]')") from exc
-    ai_config = read_ai_config()
-    if ai_config is None:
-        raise UsageError(f"--search needs an [ai] table in {CONFIG_PATH} (see the README)")
+    ai_config = _ai_settings("--search")
     if args.limit is not None and args.limit < 1:
         raise UsageError("--limit must be at least 1")
     if args.min_score is not None and not -1.0 <= args.min_score <= 1.0:
         raise UsageError("--min-score must be between -1 and 1")
     return dataclasses.replace(ai_config, limit=args.limit or ai_config.limit,
                                min_score=ai_config.min_score if args.min_score is None else args.min_score)
+
+
+def _ai_settings(what: str) -> AiConfig:
+    """The [ai] table, for a command (`what`) that cannot work without it.
+
+    :raises UsageError: when the `ai` extra is not installed or the config file has no [ai] table
+    """
+    try:
+        import numpy  # noqa: F401  # pylint: disable=unused-import
+    except ImportError as exc:
+        raise UsageError(f"{what} needs the 'ai' extra (pip install 'faint-fuzzies[ai]')") from exc
+    ai_config = read_ai_config()
+    if ai_config is None:
+        raise UsageError(f"{what} needs an [ai] table in {CONFIG_PATH} (see the README)")
+    return ai_config
+
+
+def _run_eval_ai(args: argparse.Namespace) -> int:
+    """Runs the "eval-ai" subcommand: the chat model's judgements of the test set, compared with the expected ones.
+
+    :param args: the parsed command-line arguments
+    :returns: the process exit code
+    """
+    ai_config = _ai_settings("eval-ai")
+    from faint_fuzzies.ai.client import AiClient
+    from faint_fuzzies.ai.evaluation import CASES_FILE, evaluate, read_cases
+    from faint_fuzzies.ai.index import CACHE_DIR
+    from faint_fuzzies.ai.server import running_server
+    cases = read_cases(args.data_dir / CASES_FILE)
+    report = step_reporter()
+    with running_server(ai_config, args.data_dir / CACHE_DIR, report, models=(ai_config.chat_model,)):
+        result = evaluate(AiClient(ai_config.url, ai_config.timeout), ai_config.chat_model, cases, report)
+    _emit(result, args.output)
+    return EXIT_OK
 
 
 def _description_search(args: argparse.Namespace, ai_config: AiConfig, collection: Collection,

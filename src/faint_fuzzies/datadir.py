@@ -21,6 +21,8 @@ of the community are found by their names, so the command line needs only its pa
     observations/projects/deep-sky-with-binoculars/<observer>/visual.csv
     cache/ai/                                                    the Description search index (generated, see
                                                                    faint_fuzzies.ai.index)
+    observations/owner/ai_eval/rerank.json                       the test set of `eval-ai` (optional, see
+                                                                   faint_fuzzies.ai.evaluation)
 
 `catalogues/` and `observations/global/` and `observations/projects/` hold only external data, never the
 own catalogue or the owner's own submissions. `observations/owner/` holds everything the user writes by hand:
