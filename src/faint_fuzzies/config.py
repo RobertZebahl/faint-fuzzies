@@ -95,12 +95,15 @@ class DockerConfig:
     :ivar gpu: "amd" (the /dev/kfd and /dev/dri devices), "nvidia" (a GPU device request) or "none"
     :ivar env: environment variables of the container, such as HSA_OVERRIDE_GFX_VERSION
     :ivar volume: the volume the models are kept in
+    :ivar keep_running: whether a container started by the tool is left running afterwards (Ollama still
+        unloads its models after five idle minutes), so the next search does not start it again
     """
     container: str = "faint-fuzzies-ollama"
     image: str = "ollama/ollama"
     gpu: str = "none"
     env: tuple[tuple[str, str], ...] = ()
     volume: str = "faint-fuzzies-ollama"
+    keep_running: bool = False
 
 
 GPUS = ("amd", "nvidia", "none")
@@ -216,7 +219,7 @@ def _docker_config(table: object) -> DockerConfig | None:
     where = f"{CONFIG_PATH}'s [ai.docker]"
     if not isinstance(table, dict):
         raise CatalogueError(f"{where} must be a table")
-    unknown = sorted(set(table) - {"container", "image", "gpu", "env", "volume"})
+    unknown = sorted(set(table) - {"container", "image", "gpu", "env", "volume", "keep_running"})
     if unknown:
         raise CatalogueError(f"{where} table has unknown entries: {', '.join(unknown)}")
     texts = {key: table.get(key, getattr(DockerConfig, key)) for key in ("container", "image", "gpu", "volume")}
@@ -227,7 +230,10 @@ def _docker_config(table: object) -> DockerConfig | None:
     env = table.get("env", {})
     if not isinstance(env, dict) or not all(isinstance(value, str) for value in env.values()):
         raise CatalogueError(f"{where}.env must be a table of strings")
-    return DockerConfig(env=tuple(env.items()), **texts)
+    keep_running = table.get("keep_running", False)
+    if not isinstance(keep_running, bool):
+        raise CatalogueError(f"{where}.keep_running must be true or false")
+    return DockerConfig(env=tuple(env.items()), keep_running=keep_running, **texts)
 
 
 def _ai_number(ai: dict, key: str, default: float, whole: bool) -> float:

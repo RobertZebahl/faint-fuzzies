@@ -47,8 +47,8 @@ def test_the_start_command_expands_the_home_directory(config_file, monkeypatch):
 
 def test_the_docker_table_fills_in_its_defaults(config_file):
     config_file.write_text("[ai]\n" + MINIMAL + '[ai.docker]\nimage = "ollama/ollama:rocm"\ngpu = "amd"\n'
-                           'env = { HSA_OVERRIDE_GFX_VERSION = "10.3.0" }\n', encoding="utf-8")
-    assert read_ai_config().docker == DockerConfig(image="ollama/ollama:rocm", gpu="amd",
+                           'env = { HSA_OVERRIDE_GFX_VERSION = "10.3.0" }\nkeep_running = true\n', encoding="utf-8")
+    assert read_ai_config().docker == DockerConfig(image="ollama/ollama:rocm", gpu="amd", keep_running=True,
                                                    env=(("HSA_OVERRIDE_GFX_VERSION", "10.3.0"),))
 
 
@@ -64,6 +64,7 @@ def test_the_docker_table_fills_in_its_defaults(config_file):
     pytest.param(MINIMAL + 'command = ["x"]\n[ai.docker]\n', "one or the other", id="command and docker"),
     pytest.param(MINIMAL + '[ai.docker]\ngpu = "intel"\n', "one of amd, nvidia, none", id="unknown gpu"),
     pytest.param(MINIMAL + '[ai.docker]\nports = "1"\n', "unknown entries: ports", id="unknown docker entry"),
+    pytest.param(MINIMAL + '[ai.docker]\nkeep_running = "yes"\n', "true or false", id="keep_running as text"),
     pytest.param(MINIMAL.replace("localhost:11434", "192.168.1.5:11434") + '[ai.docker]\n', "localhost or",
                  id="docker on another machine"),
 ])

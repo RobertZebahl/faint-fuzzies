@@ -942,7 +942,9 @@ works as before. With `[ai.docker]`, a search:
   (it needs the NVIDIA container toolkit).
 * starts the container when it is not running, waits until its server answers, and stops it again afterwards.
   A container that was already running is used as it is and left running, so `docker start faint-fuzzies-ollama`
-  keeps it going between searches.
+  keeps it going between searches; `keep_running = true` in `[ai.docker]` does the same for a container the tool
+  started. Ollama still unloads its models after five idle minutes, freeing the GPU memory, so a running container
+  only spares the start (and, within those minutes, loading the models).
 * downloads `embedding_model` and `chat_model` into the server when it does not have them yet - the only thing
   the tool does that is specific to Ollama.
 

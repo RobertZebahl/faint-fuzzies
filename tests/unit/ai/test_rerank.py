@@ -90,11 +90,22 @@ def test_a_long_note_is_cut_short_and_the_languages_are_joined():
 
 
 @pytest.mark.parametrize("answer", [
-    pytest.param({"verdicts": [{"number": 7, "verdict": "yes"}]}, id="number out of range"),
-    pytest.param({"verdicts": [{"number": 1, "verdict": "maybe"}]}, id="unknown verdict"),
+    pytest.param({"verdicts": []}, id="too few letters"),
+    pytest.param({"verdicts": ["maybe"]}, id="unknown letter"),
+    pytest.param({"verdicts": [1]}, id="not a letter"),
+    pytest.param({"verdicts": "y"}, id="not a list"),
     pytest.param([], id="not an object"),
 ])
 def test_an_unusable_verdict_leaves_the_hit_unjudged(answer):
     client = FakeClient()
     client.chat_json = lambda model, messages, schema: answer
     assert rerank(client, config(), "Staubband", [result("M31", ("Staubband.", 0.7))]) == []
+
+
+def test_the_answer_must_have_exactly_one_letter_per_note():
+    seen = []
+    client = FakeClient()
+    client.chat_json = lambda model, messages, schema: seen.append(schema) or {"verdicts": ["y", "n", "y"]}
+    assert rerank_module.judge_notes(client, "chat", "Staubband", ["a", "b"]) == ["yes", "no"]
+    assert seen[0]["properties"]["verdicts"] | {"items": None} == {"type": "array", "items": None,
+                                                                   "minItems": 2, "maxItems": 2}

@@ -71,6 +71,14 @@ def test_a_stopped_container_is_started_for_the_block_and_stopped_after_it(port,
     assert engine.created is None
 
 
+def test_with_keep_running_a_started_container_is_left_running(port, ollama):
+    container = FakeContainer("faint-fuzzies-ollama", ollama, status="exited")
+    with running_container(settings(port, keep_running=True), engine=FakeEngine(ollama, container=container)):
+        pass
+    assert container.calls == ["start"]
+    assert AiClient(f"http://localhost:{port}/v1", 2).answers()
+
+
 def test_a_running_container_is_used_and_left_running(port, ollama):
     ollama.start()
     container = FakeContainer("faint-fuzzies-ollama", ollama, status="running")

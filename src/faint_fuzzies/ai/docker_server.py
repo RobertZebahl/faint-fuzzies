@@ -1,5 +1,5 @@
 """Ollama in a Docker container ([ai.docker]): created from the config when it does not exist yet, started when
-it is not running, and stopped again afterwards - only when it was started here.
+it is not running, and stopped again afterwards - only when it was started here, and not with keep_running.
 
 A container is created once and then reused as it is: a changed image, GPU or env in the config only takes
 effect after the container is removed (`docker rm faint-fuzzies-ollama`); the models survive that in their volume.
@@ -52,8 +52,8 @@ def running_container(config: AiConfig, on_progress: Callable[[str, float], None
     try:
         container = _container(engine, config, on_progress)
         container.reload()
-        started = container.status != "running"
-        if started:
+        started = container.status != "running" and not config.docker.keep_running
+        if container.status != "running":
             if on_progress:
                 on_progress(f"starting the container {config.docker.container}", 0.0)
             container.start()

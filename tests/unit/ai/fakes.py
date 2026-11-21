@@ -1,7 +1,7 @@
 """A stand-in for the model server: an embedding is the count of a few keywords in the text, plus one constant
 dimension so no vector is zero - enough to tell which texts are about the same thing. Its chat model judges a
-note "no" when it has a negation, "partly" when it hedges, "yes" when it has a word of the search, and leaves
-out the notes listed in `skip`."""
+note "n" (no) when it has a negation, "p" (partly) when it hedges, "y" (yes) when it has a word of the search,
+and gives the notes listed in `skip` the unusable letter "x"."""
 import re
 
 NEGATIONS = ("nicht", "not", "keine", "kein")
@@ -38,15 +38,14 @@ class FakeClient:
         search = prompt.split("\n", 1)[0].removeprefix("Search: ").lower()
         words = [word for word in re.findall(r"\w+", search) if len(word) > 3]
         verdicts = []
-        for number, note in re.findall(r"^(\d+)\. (.*)$", prompt, re.MULTILINE):
+        for _number, note in re.findall(r"^(\d+)\. (.*)$", prompt, re.MULTILINE):
             lowered = note.lower()
             if note in self.skip:
-                continue
-            if set(re.findall(r"\w+", lowered)) & set(NEGATIONS):
-                verdict = "no"
+                verdicts.append("x")
+            elif set(re.findall(r"\w+", lowered)) & set(NEGATIONS):
+                verdicts.append("n")
             elif any(word in lowered for word in HEDGES):
-                verdict = "partly"
+                verdicts.append("p")
             else:
-                verdict = "yes" if any(word in lowered for word in words) else "no"
-            verdicts.append({"number": int(number), "verdict": verdict})
+                verdicts.append("y" if any(word in lowered for word in words) else "n")
         return {"verdicts": verdicts}

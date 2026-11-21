@@ -21,24 +21,28 @@ INSTRUCTIONS = """You judge notes that amateur astronomers wrote about what they
 English. The search names a detail they may have seen inside the object. For every numbered note, decide whether \
 the note says that this detail was seen - a more specific kind of it counts too (a dust lane, a dark lane, a knot \
 or a spiral arm is a structure):
-- "yes": the note says the detail was seen.
-- "partly": the detail is only hinted at or uncertain ("possibly", "Ansätze", "ansatzweise", "erahnbar"), or only \
-part of it was seen.
-- "no": the note does not mention the detail, or says it was not seen.
+- "y": the note says the detail was seen.
+- "p": the detail is only hinted at or uncertain ("possibly", "Ansätze", "ansatzweise", "erahnbar"), or only part \
+of it was seen.
+- "n": the note does not mention the detail, or says it was not seen.
 The object's overall shape, size or brightness, or a brighter centre, is not a detail: a note that only describes \
-those is "no". So is a note whose observer is unsure whether they saw the object at all - doubt about the object \
-is not a hint of a detail. Judge only what the note says, not what would be expected of such an object. Give one \
-verdict for every number."""
+those is "n". So is a note whose observer is unsure whether they saw the object at all - doubt about the object is \
+not a hint of a detail. Judge only what the note says, not what would be expected of such an object. Answer with \
+one letter per note, in the order of the numbers."""
 
-SCHEMA = {
-    "type": "object",
-    "properties": {"verdicts": {"type": "array", "items": {
+# one letter per verdict keeps the answer short: generating it is most of the time a judgement takes
+LETTERS = {"y": YES, "p": PARTLY, "n": NO}
+
+
+def schema(count: int) -> dict:
+    """The answer to a request with `count` notes: exactly one letter for each, in order."""
+    return {
         "type": "object",
-        "properties": {"number": {"type": "integer"}, "verdict": {"type": "string", "enum": list(VERDICTS)}},
-        "required": ["number", "verdict"], "additionalProperties": False}}},
-    "required": ["verdicts"],
-    "additionalProperties": False,
-}
+        "properties": {"verdicts": {"type": "array", "items": {"type": "string", "enum": list(LETTERS)},
+                                    "minItems": count, "maxItems": count}},
+        "required": ["verdicts"],
+        "additionalProperties": False,
+    }
 
 
 def rerank(client: AiClient, config: AiConfig, query: str, results: list[SearchResult],
@@ -75,13 +79,14 @@ def rerank(client: AiClient, config: AiConfig, query: str, results: list[SearchR
 
 
 def _judge(client: AiClient, model: str, query: str, hits: list[Hit]) -> dict[int, str]:
-    """The verdict on each hit, by its 1-based number in `hits`; a number the model left out has none."""
+    """The verdict on each hit, by its 1-based number in `hits`; one the model gave no usable letter for has
+    none."""
     verdicts = judge_notes(client, model, query, [_note(hit) for hit in hits])
     return {number: verdict for number, verdict in enumerate(verdicts, start=1) if verdict is not None}
 
 
 def judge_notes(client: AiClient, model: str, query: str, notes: list[str]) -> list[str | None]:
-    """The chat model's verdict on each note (one request), None for a note it left out.
+    """The chat model's verdict on each note (one request), None for a note it gave no usable letter for.
 
     :param client: the model server
     :param model: the chat model
@@ -93,14 +98,12 @@ def judge_notes(client: AiClient, model: str, query: str, notes: list[str]) -> l
     numbered = "\n".join(f"{number}. {note}" for number, note in enumerate(notes, start=1))
     answer = client.chat_json(model, [{"role": "system", "content": INSTRUCTIONS},
                                       {"role": "user", "content": f"Search: {query}\n\nNotes:\n{numbered}"}],
-                              SCHEMA)
-    verdicts: list[str | None] = [None] * len(notes)
-    for item in answer.get("verdicts", []) if isinstance(answer, dict) else []:
-        number, verdict = item.get("number"), item.get("verdict")
-        if (isinstance(number, int) and 1 <= number <= len(notes) and isinstance(verdict, str)
-                and verdict in VERDICTS and verdicts[number - 1] is None):
-            verdicts[number - 1] = verdict
-    return verdicts
+                              schema(len(notes)))
+    letters = answer.get("verdicts") if isinstance(answer, dict) else None
+    if not isinstance(letters, list):
+        return [None] * len(notes)
+    letters = (letters + [None] * len(notes))[:len(notes)]
+    return [LETTERS.get(letter) if isinstance(letter, str) else None for letter in letters]
 
 
 def _note(hit: Hit) -> str:
