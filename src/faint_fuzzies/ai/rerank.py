@@ -65,8 +65,9 @@ RUBRICS = {
         "kind": "detail",
         "yes": "The note says the detail, or a more specific kind of it, was seen - a dust lane, a dark lane, a knot, "
                "a bar or a spiral arm is a structure. Seen with averted vision is still seen.",
-        "partly": "The detail was seen only faintly or in traces: every note with \"Ansätze\", \"ansatzweise\", "
-                  "\"erahnbar\", \"teils\" or \"hints of\" about it, however well the rest was seen.",
+        "partly": "The detail was seen only faintly or in traces (\"Ansätze\", \"ansatzweise\", \"erahnbar\", "
+                  "\"teils\", \"hints of\"), however well the rest of the object was seen - unless the note also "
+                  "says the detail was seen clearly (\"sicher\", \"deutlich\", \"clearly\"): that is \"y\".",
         "no": "Anything else: the detail is not mentioned, not seen, or only possibly seen (\"möglicherweise\", "
               "\"vielleicht\", \"nicht sicher\"). The object's overall shape, size or brightness, or a brighter "
               "centre, is not a detail, and being well seen (\"indirekt gut zu sehen\", \"sicher gesehen\") says "
