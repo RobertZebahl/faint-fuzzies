@@ -39,6 +39,17 @@ class AiClient:
             raise AiError(f"the model server returned {len(vectors)} embeddings for {len(texts)} texts")
         return vectors
 
+    def answers(self) -> bool:
+        """Whether a server answers at the URL at all - any HTTP answer counts, even an error status, since
+        only whether something listens there matters."""
+        try:
+            with urllib.request.urlopen(self.url + "/models", timeout=2):
+                return True
+        except urllib.error.HTTPError:
+            return True
+        except (TimeoutError, urllib.error.URLError, ConnectionError):
+            return False
+
     def _post(self, path: str, payload: dict[str, Any]) -> Any:
         request = urllib.request.Request(self.url + path, data=json.dumps(payload).encode("utf-8"),
                                          headers={"Content-Type": "application/json"}, method="POST")

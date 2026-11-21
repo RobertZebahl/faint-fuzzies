@@ -915,16 +915,22 @@ faint-fuzzies filter --data-dir DIR --filter '{"type": "Gx"}' --search "Struktur
 
 **The model server.** The tool talks to any server with an OpenAI-compatible API (`POST <url>/embeddings`) and
 never loads a model itself (see [ADR 0001](docs/adr/0001-local-ai-via-external-server-outside-filterspec.md)).
-With [Ollama](https://ollama.com):
+The suggested one is [Ollama](https://ollama.com), unpacked into the home directory rather than installed as a
+system service, so it needs no root and runs only while the tool needs it:
 
 ```
-ollama pull bge-m3            # a multilingual embedding model (German and English in one space)
-ollama serve                  # if it is not already running as a service
+mkdir -p ~/.local/ollama && cd ~/.local/ollama
+curl -L https://ollama.com/download/ollama-linux-amd64.tgz | tar xz
+curl -L https://ollama.com/download/ollama-linux-amd64-rocm.tgz | tar xz   # only for an AMD GPU
+~/.local/ollama/bin/ollama serve &                                          # just once, to pull the model:
+~/.local/ollama/bin/ollama pull bge-m3      # a multilingual embedding model (German and English in one space)
+kill %1
 ```
 
-llama.cpp's `llama-server` or LM Studio work as well. On an AMD GPU that ROCm does not officially support (such as
-the RX 6600, gfx1032), Ollama's ROCm build usually needs `HSA_OVERRIDE_GFX_VERSION=10.3.0` in its environment;
-its Vulkan backend is the alternative. `ollama ps` shows whether a loaded model runs on the GPU or the CPU.
+The models go to `~/.ollama/models`, never into the data directory. On an AMD GPU that ROCm does not officially
+support (such as the RX 6600, gfx1032), Ollama needs `HSA_OVERRIDE_GFX_VERSION=10.3.0` in its environment (see
+`env` below); `ollama ps` shows whether a loaded model runs on the GPU or the CPU. llama.cpp's `llama-server` or
+LM Studio work as well, but `llama-server` serves one model per process.
 
 **The configuration.** An `[ai]` table in `~/.config/faint-fuzzies/config.toml`; without it, `--search` says so and
 everything else works as before:
@@ -937,7 +943,16 @@ embedding_model = "bge-m3"
 min_score = 0.5                     # optional: the lowest similarity (-1 to 1) that still counts as a hit
 limit = 100                         # optional: the most Observations one search returns
 timeout = 300                       # optional: seconds to wait for one answer of the server
+command = ["~/.local/ollama/bin/ollama", "serve"]          # optional: how to start the server, see below
+env = { HSA_OVERRIDE_GFX_VERSION = "10.3.0" }               # optional: extra environment for `command`
+startup_timeout = 60                # optional: seconds a started server has to answer
 ```
+
+**Starting the server.** With `command`, the tool starts the server itself when nothing answers at `url`, waits
+until it does, and stops it again when the command is done; its output goes to `cache/ai/server.log` of the data
+directory (overwritten on every start). A server that was already running is used as it is and never stopped.
+Without `command`, the server has to be running already. The command must make the server listen at `url`: for
+Ollama on another port than 11434, also set `OLLAMA_HOST` in `env`.
 
 **The result.** A Description search ranks and never gives a plain yes or no: an Observation is a *hit* when its
 best text scores at least `min_score`, the best `limit` hits over all matches are kept, and an Object is listed

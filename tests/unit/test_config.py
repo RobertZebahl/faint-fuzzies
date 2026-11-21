@@ -35,12 +35,25 @@ def test_the_numbers_can_be_set(config_file):
     assert (ai.min_score, ai.limit, ai.timeout) == (0.3, 20, 60.0)
 
 
+def test_the_start_command_expands_the_home_directory(config_file, monkeypatch):
+    monkeypatch.setenv("HOME", "/home/someone")
+    config_file.write_text("[ai]\n" + MINIMAL + 'command = ["~/.local/ollama/bin/ollama", "serve"]\n'
+                           'env = { HSA_OVERRIDE_GFX_VERSION = "10.3.0" }\nstartup_timeout = 30\n', encoding="utf-8")
+    ai = read_ai_config()
+    assert ai.command == ("/home/someone/.local/ollama/bin/ollama", "serve")
+    assert ai.env == (("HSA_OVERRIDE_GFX_VERSION", "10.3.0"),)
+    assert ai.startup_timeout == 30.0
+
+
 @pytest.mark.parametrize("table, message", [
     pytest.param('url = "x"\n', "chat_model, embedding_model", id="missing models"),
     pytest.param(MINIMAL + "limit = 0\n", "greater than 0", id="limit zero"),
     pytest.param(MINIMAL + "min_score = 2\n", "between -1 and 1", id="score out of range"),
     pytest.param(MINIMAL + 'limit = "10"\n', "must be a whole number", id="limit as text"),
     pytest.param(MINIMAL + "limit = 2.5\n", "must be a whole number", id="limit as fraction"),
+    pytest.param(MINIMAL + 'command = "ollama serve"\n', "list of non-empty strings", id="command as text"),
+    pytest.param(MINIMAL + 'command = ["ollama"]\nenv = { X = 1 }\n', "table of strings", id="env number"),
+    pytest.param(MINIMAL + 'env = { X = "1" }\n', "only goes with", id="env without command"),
 ])
 def test_an_invalid_ai_table_is_an_error(config_file, table, message):
     config_file.write_text("[ai]\n" + table, encoding="utf-8")

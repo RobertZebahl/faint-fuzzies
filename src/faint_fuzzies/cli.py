@@ -552,11 +552,14 @@ def _description_search(args: argparse.Namespace, ai_config: AiConfig, collectio
     :returns: the matches with hits, best first
     """
     from faint_fuzzies.ai.client import AiClient
-    from faint_fuzzies.ai.index import update_index
+    from faint_fuzzies.ai.index import CACHE_DIR, update_index
     from faint_fuzzies.ai.search import query_vector, rank
+    from faint_fuzzies.ai.server import running_server
     client = AiClient(ai_config.url, ai_config.timeout)
-    index = update_index(args.data_dir, collection.objects, client, ai_config.embedding_model, step_reporter())
-    query = query_vector(client, ai_config.embedding_model, args.search)
+    report = step_reporter()
+    with running_server(ai_config, args.data_dir / CACHE_DIR, lambda message: report(message, 0.0)):
+        index = update_index(args.data_dir, collection.objects, client, ai_config.embedding_model, report)
+        query = query_vector(client, ai_config.embedding_model, args.search)
     return rank(matches, query, index, ai_config.min_score, ai_config.limit)
 
 

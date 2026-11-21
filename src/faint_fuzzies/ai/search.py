@@ -44,16 +44,16 @@ def rank(matches: Sequence[Match], query: np.ndarray, index: DescriptionIndex, m
     if not index.rows:
         return []
     scores = index.vectors @ query
-    hits: list[tuple[float, int, int, FoundObservation]] = []
+    hits: list[tuple[float, int, FoundObservation]] = []
     for match_number, match in enumerate(matches):
-        for number, found in enumerate(match.observations):
+        for found in match.observations:
             rows = [row for text in description_texts(found.observation)
                     if (row := index.row_of(text)) is not None]
             if rows and (best := float(scores[rows].max())) >= min_score:
-                hits.append((best, match_number, number, found))
-    hits.sort(key=lambda hit: (-hit[0], hit[1], hit[2]))
+                hits.append((best, match_number, found))
+    hits.sort(key=lambda hit: (-hit[0], hit[1]))  # stable: equal scores keep the filter's order
     by_match: dict[int, list[tuple[FoundObservation, float]]] = {}
-    for score, match_number, _number, found in hits[:limit]:
+    for score, match_number, found in hits[:limit]:
         by_match.setdefault(match_number, []).append((found, score))
     return [SearchResult(matches[match_number], found[0][1], tuple(found))
             for match_number, found in by_match.items()]

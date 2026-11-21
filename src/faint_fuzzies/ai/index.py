@@ -14,7 +14,7 @@ always safe; it is rebuilt on the next search.
 import hashlib
 import os
 import re
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -87,11 +87,7 @@ def update_index(root: Path, objects: Iterable[Object], client: AiClient, model:
     :returns: the index
     :raises AiError: when the server fails
     """
-    wanted: dict[str, str] = {}
-    for obj in objects:
-        for observation in obj.all_observations:
-            for text in description_texts(observation):
-                wanted.setdefault(text_key(text), text)
+    wanted = _wanted_texts(objects)
     path = index_path(root, model)
     cached = _read(path, model)
     missing = [key for key in wanted if key not in cached]
@@ -105,19 +101,41 @@ def update_index(root: Path, objects: Iterable[Object], client: AiClient, model:
             cached = {}
             missing = [key for key in wanted if key != first]
     vectors.update({key: cached[key] for key in wanted if key in cached})
-    for number, start in enumerate(range(0, len(missing), BATCH_SIZE), start=1):
-        if on_progress:
-            on_progress(f"embedding {len(missing)} new description texts", start / len(missing))
-        batch = missing[start:start + BATCH_SIZE]
-        embedded = normalized(np.asarray(client.embed(model, [wanted[key] for key in batch]), dtype=np.float32))
-        vectors.update(zip(batch, embedded))
+    for number, embedded in enumerate(_embedded_batches(client, model, {key: wanted[key] for key in missing},
+                                                        on_progress), start=1):
+        vectors.update(embedded)
         if number % SAVE_EVERY == 0:
             _write(path, model, vectors)
     if vectors.keys() != cached.keys():
         _write(path, model, vectors)
     keys = list(vectors)
-    matrix = np.stack([vectors[key] for key in keys]) if keys else np.zeros((0, 0), dtype=np.float32)
-    return DescriptionIndex({key: row for row, key in enumerate(keys)}, matrix)
+    return DescriptionIndex({key: row for row, key in enumerate(keys)}, _matrix(vectors))
+
+
+def _wanted_texts(objects: Iterable[Object]) -> dict[str, str]:
+    """Every searchable text of the Observations of `objects`, by key."""
+    wanted: dict[str, str] = {}
+    for obj in objects:
+        for observation in obj.all_observations:
+            for text in description_texts(observation):
+                wanted.setdefault(text_key(text), text)
+    return wanted
+
+
+def _embedded_batches(client: AiClient, model: str, missing: dict[str, str],
+                      on_progress: ProgressCallback | None) -> Iterator[dict[str, np.ndarray]]:
+    """The normalized vectors of the `missing` texts (by key), BATCH_SIZE of them at a time."""
+    keys = list(missing)
+    for start in range(0, len(keys), BATCH_SIZE):
+        if on_progress:
+            on_progress(f"embedding {len(keys)} new description texts", start / len(keys))
+        batch = keys[start:start + BATCH_SIZE]
+        embedded = normalized(np.asarray(client.embed(model, [missing[key] for key in batch]), dtype=np.float32))
+        yield dict(zip(batch, embedded))
+
+
+def _matrix(vectors: dict[str, np.ndarray]) -> np.ndarray:
+    return np.stack(list(vectors.values())) if vectors else np.zeros((0, 0), dtype=np.float32)
 
 
 def _read(path: Path, model: str) -> dict[str, np.ndarray]:
@@ -126,7 +144,8 @@ def _read(path: Path, model: str) -> dict[str, np.ndarray]:
         with np.load(path, allow_pickle=False) as data:
             if str(data["model"]) != model:
                 return {}
-            return dict(zip(data["keys"].tolist(), data["vectors"]))
+            keys: list[str] = np.asarray(data["keys"]).tolist()
+            return dict(zip(keys, data["vectors"]))
     except (OSError, KeyError, ValueError):
         return {}
 
@@ -134,7 +153,7 @@ def _read(path: Path, model: str) -> dict[str, np.ndarray]:
 def _write(path: Path, model: str, vectors: dict[str, np.ndarray]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     keys = list(vectors)
-    matrix = np.stack([vectors[key] for key in keys]) if keys else np.zeros((0, 0), dtype=np.float32)
+    matrix = _matrix(vectors)
     temporary = path.with_name(path.name + ".tmp")
     try:
         with temporary.open("wb") as file:

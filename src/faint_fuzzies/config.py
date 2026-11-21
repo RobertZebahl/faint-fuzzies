@@ -1,5 +1,6 @@
 """The user's config file, so day-to-day commands (currently "serve", "upload") do not need the same options
 every time, and the settings of the local AI server ("filter --search")."""
+import os
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
@@ -84,7 +85,7 @@ def resolve_upload_config() -> UploadConfig:
 
 
 @dataclass(frozen=True)
-class AiConfig:
+class AiConfig:  # pylint: disable=too-many-instance-attributes  # one per setting
     """The "ai" table of the config file: the local model server that Questions and Description search use
     (see docs/adr/0001-local-ai-via-external-server-outside-filterspec.md).
 
@@ -95,6 +96,11 @@ class AiConfig:
     :ivar min_score: the lowest similarity (cosine, -1 to 1) a Description search still counts as a hit
     :ivar limit: the most Observations a Description search returns
     :ivar timeout: seconds to wait for one answer of the server
+    :ivar command: the command that starts the server when nothing answers at `url` (see
+        faint_fuzzies.ai.server); empty when the user always starts it themselves. A leading `~` in any of its
+        parts is expanded
+    :ivar env: environment variables the command gets on top of the tool's own
+    :ivar startup_timeout: seconds a started server has to answer before it is given up on
     """
     url: str
     chat_model: str
@@ -102,6 +108,9 @@ class AiConfig:
     min_score: float = 0.5
     limit: int = 100
     timeout: float = 300.0
+    command: tuple[str, ...] = ()
+    env: tuple[tuple[str, str], ...] = ()
+    startup_timeout: float = 60.0
 
 
 def read_ai_config() -> AiConfig | None:
@@ -124,12 +133,25 @@ def read_ai_config() -> AiConfig | None:
     min_score = float(_ai_number(ai, "min_score", AiConfig.min_score, whole=False))
     limit = int(_ai_number(ai, "limit", AiConfig.limit, whole=True))
     timeout = float(_ai_number(ai, "timeout", AiConfig.timeout, whole=False))
+    startup_timeout = float(_ai_number(ai, "startup_timeout", AiConfig.startup_timeout, whole=False))
     if not -1.0 <= min_score <= 1.0:
         raise CatalogueError(f"{CONFIG_PATH}'s [ai].min_score must be between -1 and 1")
-    if limit < 1 or timeout <= 0:
-        raise CatalogueError(f"{CONFIG_PATH}'s [ai].limit and [ai].timeout must be greater than 0")
+    if limit < 1 or timeout <= 0 or startup_timeout <= 0:
+        raise CatalogueError(f"{CONFIG_PATH}'s [ai].limit, [ai].timeout and [ai].startup_timeout must be "
+                             f"greater than 0")
+    command = ai.get("command", [])
+    if not isinstance(command, list) or not all(isinstance(part, str) and part for part in command):
+        raise CatalogueError(f"{CONFIG_PATH}'s [ai].command must be a list of non-empty strings, "
+                             f"for example [\"~/.local/ollama/bin/ollama\", \"serve\"]")
+    env = ai.get("env", {})
+    if not isinstance(env, dict) or not all(isinstance(value, str) for value in env.values()):
+        raise CatalogueError(f"{CONFIG_PATH}'s [ai].env must be a table of strings")
+    if env and not command:
+        raise CatalogueError(f"{CONFIG_PATH}'s [ai].env only goes with [ai].command")
     return AiConfig(url=ai["url"].rstrip("/"), chat_model=ai["chat_model"], embedding_model=ai["embedding_model"],
-                    min_score=min_score, limit=limit, timeout=timeout)
+                    min_score=min_score, limit=limit, timeout=timeout,
+                    command=tuple(os.path.expanduser(part) for part in command), env=tuple(env.items()),
+                    startup_timeout=startup_timeout)
 
 
 def _ai_number(ai: dict, key: str, default: float, whole: bool) -> float:
