@@ -18,11 +18,14 @@ MIN_SCORE = 0.55  # the embedding pre-filter: below it, a text is not worth aski
 TEXT_LENGTH = 600
 
 INSTRUCTIONS = """You judge notes that amateur astronomers wrote about what they saw of a sky object, in German or \
-English. For every numbered note, decide whether it says that what the search asks for was seen:
+English. The search names a detail or property they may have seen. For every numbered note, decide whether the \
+note says that this detail - or a clear synonym of it - was seen:
 - "yes": the note clearly says it was seen.
-- "partly": only hinted at, uncertain ("possibly", "Ansätze", "erahnbar"), or only part of it.
+- "partly": only hinted at, uncertain ("possibly", "Ansätze", "ansatzweise", "erahnbar"), or only part of it.
 - "no": the note does not mention it, or says it was not seen.
-Judge only what the note says, not what would be expected of such an object. Give one verdict for every number."""
+That the object itself was seen, or its shape, size or brightness, is not enough: answer "no" unless the search \
+asks for exactly that. Judge only what the note says, not what would be expected of such an object. Give one \
+verdict for every number."""
 
 SCHEMA = {
     "type": "object",
