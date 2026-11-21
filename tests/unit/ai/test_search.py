@@ -18,7 +18,7 @@ def searched(tmp_path):
     client = FakeClient()
     index = update_index(data_dir, world.collection.objects, client, "model")
 
-    def search(text, spec=None, min_score=0.5, limit=100):
+    def search(text, spec=None, min_score=0.5, limit=30):
         matches = filter_objects(world.collection, FilterSpec.from_dict(spec or {}), world.references)
         return rank(matches, query_vector(client, "model", text), index, min_score, limit)
     return search
@@ -41,9 +41,17 @@ def test_an_object_without_any_hit_is_left_out(searched):
     assert "STF999" not in labels
 
 
-def test_the_limit_counts_observations_over_all_objects(searched):
+def test_the_limit_counts_objects_and_each_keeps_all_its_hits(searched):
+    everything = searched("Text", min_score=0.0)
     results = searched("Text", min_score=0.0, limit=2)
-    assert sum(len(result.hits) for result in results) == 2
+    assert results == everything[:2]
+    assert any(len(result.hits) > 1 for result in results)
+
+
+def test_the_hits_of_an_object_are_sorted_best_first(searched):
+    for result in searched("Text", min_score=0.0):
+        scores = [score for _found, score in result.hits]
+        assert scores == sorted(scores, reverse=True)
 
 
 def test_the_filter_decides_which_objects_are_searched(searched):

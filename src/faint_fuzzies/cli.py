@@ -108,7 +108,7 @@ def _build_parser() -> argparse.ArgumentParser:
                                     "descriptions fit TEXT (German or English); needs --data-dir and the [ai] "
                                     "table of the config file (see the README)")
     filter_parser.add_argument("--limit", type=int, metavar="N",
-                               help="with --search, the most observations returned; default: [ai].limit")
+                               help="with --search, the most objects returned; default: [ai].limit")
     filter_parser.add_argument("--min-score", type=float, metavar="SCORE",
                                help="with --search, the lowest similarity (-1 to 1) that still counts; "
                                     "default: [ai].min_score")

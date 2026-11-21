@@ -970,14 +970,15 @@ The other entries of `[ai]` are optional:
 
 ```toml
 min_score = 0.5          # the lowest similarity (-1 to 1) that still counts as a hit
-limit = 100              # the most Observations one search returns
+limit = 30               # the most Objects one search returns
 timeout = 300            # seconds to wait for one answer of the server
 startup_timeout = 60     # seconds a started server or container has to answer
 ```
 
 **The result.** A Description search ranks and never gives a plain yes or no: an Observation is a *hit* when its
-best text scores at least `min_score`, the best `limit` hits over all matches are kept, and an Object is listed
-(best first) when it has at least one. With `--search`, every Object of the result carries its `score` (that of
+best text scores at least `min_score`, an Object is listed when it has at least one, ranked by its best hit, and
+the best `limit` Objects are kept - each with all of its hits, so an Object observed many times cannot push the
+others out. With `--search`, every Object of the result carries its `score` (that of
 its best hit) and every one of its observations its own (`null` for one that is not a hit); all of its
 observations are still listed. `--limit` and `--min-score` override the config for one run. A good `min_score`
 depends on the embedding model, so it is worth trying a few searches with `--min-score 0` and looking at the

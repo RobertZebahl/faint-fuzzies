@@ -32,28 +32,29 @@ def query_vector(client: AiClient, model: str, text: str) -> np.ndarray:
 def rank(matches: Sequence[Match], query: np.ndarray, index: DescriptionIndex, min_score: float,
          limit: int) -> list[SearchResult]:
     """The matches with hits, the best first. A hit is an Observation whose best text scores at least
-    `min_score`; at most `limit` hits are kept over all matches, and an Object ranks by its best one.
+    `min_score`; an Object ranks by its best hit, and at most `limit` Objects are kept, each with all of its
+    hits - so an Object observed many times cannot crowd the others out.
 
     :param matches: the filter's matches
     :param query: the search text's normalized vector
     :param index: the Descriptions' vectors
     :param min_score: the lowest cosine similarity that is still a hit
-    :param limit: the most hits returned
+    :param limit: the most Objects returned
     :returns: the matches that have a hit, best first
     """
     if not index.rows:
         return []
     scores = index.vectors @ query
-    hits: list[tuple[float, int, FoundObservation]] = []
-    for match_number, match in enumerate(matches):
+    results = []
+    for match in matches:
+        hits = []
         for found in match.observations:
             rows = [row for text in description_texts(found.observation)
                     if (row := index.row_of(text)) is not None]
             if rows and (best := float(scores[rows].max())) >= min_score:
-                hits.append((best, match_number, found))
-    hits.sort(key=lambda hit: (-hit[0], hit[1]))  # stable: equal scores keep the filter's order
-    by_match: dict[int, list[tuple[FoundObservation, float]]] = {}
-    for score, match_number, found in hits[:limit]:
-        by_match.setdefault(match_number, []).append((found, score))
-    return [SearchResult(matches[match_number], found[0][1], tuple(found))
-            for match_number, found in by_match.items()]
+                hits.append((found, best))
+        if hits:
+            hits.sort(key=lambda hit: -hit[1])
+            results.append(SearchResult(match, hits[0][1], tuple(hits)))
+    results.sort(key=lambda result: -result.score)  # stable: equal scores keep the filter's order
+    return results[:limit]

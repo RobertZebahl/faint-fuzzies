@@ -116,7 +116,7 @@ class AiConfig:  # pylint: disable=too-many-instance-attributes  # one per setti
     :ivar embedding_model: the model that turns Descriptions into vectors; a multilingual one, so a German
         and an English text about the same thing land close together
     :ivar min_score: the lowest similarity (cosine, -1 to 1) a Description search still counts as a hit
-    :ivar limit: the most Observations a Description search returns
+    :ivar limit: the most Objects a Description search returns
     :ivar timeout: seconds to wait for one answer of the server
     :ivar command: the command that starts the server when nothing answers at `url` (see
         faint_fuzzies.ai.server); empty when the user always starts it themselves. A leading `~` in any of its
@@ -129,7 +129,7 @@ class AiConfig:  # pylint: disable=too-many-instance-attributes  # one per setti
     chat_model: str
     embedding_model: str
     min_score: float = 0.5
-    limit: int = 100
+    limit: int = 30
     timeout: float = 300.0
     command: tuple[str, ...] = ()
     env: tuple[tuple[str, str], ...] = ()
