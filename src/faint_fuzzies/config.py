@@ -2,6 +2,7 @@
 every time, and the settings of the local AI server ("filter --search")."""
 import os
 import tomllib
+import urllib.parse
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -85,6 +86,27 @@ def resolve_upload_config() -> UploadConfig:
 
 
 @dataclass(frozen=True)
+class DockerConfig:
+    """The "ai.docker" table: Ollama in a container the tool creates, starts and stops itself (see
+    faint_fuzzies.ai.docker_server).
+
+    :ivar container: the container's name
+    :ivar image: the image it is created from, for example "ollama/ollama:rocm"
+    :ivar gpu: "amd" (the /dev/kfd and /dev/dri devices), "nvidia" (a GPU device request) or "none"
+    :ivar env: environment variables of the container, such as HSA_OVERRIDE_GFX_VERSION
+    :ivar volume: the volume the models are kept in
+    """
+    container: str = "ollama"
+    image: str = "ollama/ollama"
+    gpu: str = "none"
+    env: tuple[tuple[str, str], ...] = ()
+    volume: str = "ollama"
+
+
+GPUS = ("amd", "nvidia", "none")
+
+
+@dataclass(frozen=True)
 class AiConfig:  # pylint: disable=too-many-instance-attributes  # one per setting
     """The "ai" table of the config file: the local model server that Questions and Description search use
     (see docs/adr/0001-local-ai-via-external-server-outside-filterspec.md).
@@ -101,6 +123,7 @@ class AiConfig:  # pylint: disable=too-many-instance-attributes  # one per setti
         parts is expanded
     :ivar env: environment variables the command gets on top of the tool's own
     :ivar startup_timeout: seconds a started server has to answer before it is given up on
+    :ivar docker: the container to run the server in, instead of `command`; None without one
     """
     url: str
     chat_model: str
@@ -111,6 +134,7 @@ class AiConfig:  # pylint: disable=too-many-instance-attributes  # one per setti
     command: tuple[str, ...] = ()
     env: tuple[tuple[str, str], ...] = ()
     startup_timeout: float = 60.0
+    docker: DockerConfig | None = None
 
 
 def read_ai_config() -> AiConfig | None:
@@ -148,10 +172,62 @@ def read_ai_config() -> AiConfig | None:
         raise CatalogueError(f"{CONFIG_PATH}'s [ai].env must be a table of strings")
     if env and not command:
         raise CatalogueError(f"{CONFIG_PATH}'s [ai].env only goes with [ai].command")
+    docker = _docker_config(ai.get("docker"))
+    if docker and not _local_port(ai["url"]):
+        raise CatalogueError(f"{CONFIG_PATH}'s [ai].url must name localhost or 127.0.0.1 and a port with "
+                             f"[ai.docker], for example \"http://localhost:11434/v1\"")
+    if docker and command:
+        raise CatalogueError(f"{CONFIG_PATH}'s [ai] table has both a command and an [ai.docker] table; "
+                             f"give one or the other")
     return AiConfig(url=ai["url"].rstrip("/"), chat_model=ai["chat_model"], embedding_model=ai["embedding_model"],
                     min_score=min_score, limit=limit, timeout=timeout,
                     command=tuple(os.path.expanduser(part) for part in command), env=tuple(env.items()),
-                    startup_timeout=startup_timeout)
+                    startup_timeout=startup_timeout, docker=docker)
+
+
+def local_port(config: AiConfig) -> int:
+    """The port of the url on this machine, which the container's server is published on.
+
+    :raises ValueError: when the url names another machine or no port (read_ai_config rejects such a url
+        when there is an [ai.docker] table)
+    """
+    port = _local_port(config.url)
+    if port is None:
+        raise ValueError(f"not a local url with a port: {config.url}")
+    return port
+
+
+def _local_port(url: str) -> int | None:
+    try:
+        parts = urllib.parse.urlsplit(url)
+        port = parts.port
+    except ValueError:
+        return None
+    return port if parts.hostname in ("localhost", "127.0.0.1") and port else None
+
+
+def _docker_config(table: object) -> DockerConfig | None:
+    """The [ai.docker] table, None when there is none.
+
+    :raises faint_fuzzies.domain.findings.CatalogueError: when it is invalid
+    """
+    if table is None:
+        return None
+    where = f"{CONFIG_PATH}'s [ai.docker]"
+    if not isinstance(table, dict):
+        raise CatalogueError(f"{where} must be a table")
+    unknown = sorted(set(table) - {"container", "image", "gpu", "env", "volume"})
+    if unknown:
+        raise CatalogueError(f"{where} table has unknown entries: {', '.join(unknown)}")
+    texts = {key: table.get(key, getattr(DockerConfig, key)) for key in ("container", "image", "gpu", "volume")}
+    if not all(isinstance(value, str) and value for value in texts.values()):
+        raise CatalogueError(f"{where}.container, .image, .gpu and .volume must be non-empty strings")
+    if texts["gpu"] not in GPUS:
+        raise CatalogueError(f"{where}.gpu must be one of {', '.join(GPUS)}")
+    env = table.get("env", {})
+    if not isinstance(env, dict) or not all(isinstance(value, str) for value in env.values()):
+        raise CatalogueError(f"{where}.env must be a table of strings")
+    return DockerConfig(env=tuple(env.items()), **texts)
 
 
 def _ai_number(ai: dict, key: str, default: float, whole: bool) -> float:

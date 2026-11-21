@@ -2,7 +2,7 @@
 import pytest
 
 from faint_fuzzies import config
-from faint_fuzzies.config import AiConfig, read_ai_config
+from faint_fuzzies.config import AiConfig, DockerConfig, read_ai_config
 from faint_fuzzies.domain.findings import CatalogueError
 
 MINIMAL = 'url = "http://localhost:11434/v1/"\nchat_model = "chat"\nembedding_model = "bge-m3"\n'
@@ -45,6 +45,13 @@ def test_the_start_command_expands_the_home_directory(config_file, monkeypatch):
     assert ai.startup_timeout == 30.0
 
 
+def test_the_docker_table_fills_in_its_defaults(config_file):
+    config_file.write_text("[ai]\n" + MINIMAL + '[ai.docker]\nimage = "ollama/ollama:rocm"\ngpu = "amd"\n'
+                           'env = { HSA_OVERRIDE_GFX_VERSION = "10.3.0" }\n', encoding="utf-8")
+    assert read_ai_config().docker == DockerConfig(image="ollama/ollama:rocm", gpu="amd",
+                                                   env=(("HSA_OVERRIDE_GFX_VERSION", "10.3.0"),))
+
+
 @pytest.mark.parametrize("table, message", [
     pytest.param('url = "x"\n', "chat_model, embedding_model", id="missing models"),
     pytest.param(MINIMAL + "limit = 0\n", "greater than 0", id="limit zero"),
@@ -54,6 +61,11 @@ def test_the_start_command_expands_the_home_directory(config_file, monkeypatch):
     pytest.param(MINIMAL + 'command = "ollama serve"\n', "list of non-empty strings", id="command as text"),
     pytest.param(MINIMAL + 'command = ["ollama"]\nenv = { X = 1 }\n', "table of strings", id="env number"),
     pytest.param(MINIMAL + 'env = { X = "1" }\n', "only goes with", id="env without command"),
+    pytest.param(MINIMAL + 'command = ["x"]\n[ai.docker]\n', "one or the other", id="command and docker"),
+    pytest.param(MINIMAL + '[ai.docker]\ngpu = "intel"\n', "one of amd, nvidia, none", id="unknown gpu"),
+    pytest.param(MINIMAL + '[ai.docker]\nports = "1"\n', "unknown entries: ports", id="unknown docker entry"),
+    pytest.param(MINIMAL.replace("localhost:11434", "192.168.1.5:11434") + '[ai.docker]\n', "localhost or",
+                 id="docker on another machine"),
 ])
 def test_an_invalid_ai_table_is_an_error(config_file, table, message):
     config_file.write_text("[ai]\n" + table, encoding="utf-8")

@@ -915,58 +915,62 @@ faint-fuzzies filter --data-dir DIR --filter '{"type": "Gx"}' --search "Struktur
 
 **The model server.** The tool talks to any server with an OpenAI-compatible API (`POST <url>/embeddings`) and
 never loads a model itself (see [ADR 0001](docs/adr/0001-local-ai-via-external-server-outside-filterspec.md)).
-The suggested one is [Ollama](https://ollama.com), unpacked into the home directory rather than installed as a
-system service, so it needs no root and runs only while the tool needs it:
-
-```
-mkdir -p ~/.local/ollama && cd ~/.local/ollama
-curl -L https://ollama.com/download/ollama-linux-amd64.tgz | tar xz
-curl -L https://ollama.com/download/ollama-linux-amd64-rocm.tgz | tar xz   # only for an AMD GPU
-~/.local/ollama/bin/ollama serve &                                          # just once, to pull the model:
-~/.local/ollama/bin/ollama pull bge-m3      # a multilingual embedding model (German and English in one space)
-kill %1
-```
-
-The models go to `~/.ollama/models`, never into the data directory. On an AMD GPU that ROCm does not officially
-support (such as the RX 6600, gfx1032), Ollama needs `HSA_OVERRIDE_GFX_VERSION=10.3.0` in its environment (see
-`env` below); `ollama ps` shows whether a loaded model runs on the GPU or the CPU. llama.cpp's `llama-server` or
-LM Studio work as well, but `llama-server` serves one model per process.
-
-Ollama in a container is the isolated alternative (the `rocm` image for an AMD GPU, `ollama/ollama` otherwise).
-`127.0.0.1:` keeps the port off the network - without it, Docker publishes it on every interface, past `ufw`:
-
-```
-docker run -d --name ollama --device /dev/kfd --device /dev/dri -e HSA_OVERRIDE_GFX_VERSION=10.3.0 \
-  -v ollama:/root/.ollama -p 127.0.0.1:11434:11434 ollama/ollama:rocm
-docker exec ollama ollama pull bge-m3
-docker stop ollama
-```
-
-The models then live in the volume `ollama`, and the start command is `["docker", "start", "-a", "ollama"]`
-(it runs as long as the container does and passes the stop on to it); the GPU setting goes into the container
-with `-e` as above, not into `env`. Podman works the same way, rootless.
-
-**The configuration.** An `[ai]` table in `~/.config/faint-fuzzies/config.toml`; without it, `--search` says so and
-everything else works as before:
+The suggested one is [Ollama](https://ollama.com) in a Docker container the tool manages itself - all it needs
+is Docker and the `ai` extra:
 
 ```toml
 [ai]
 url = "http://localhost:11434/v1"   # the API's base URL; Ollama's OpenAI-compatible one ends in /v1
 chat_model = "qwen3:8b"             # for Questions in natural language (not used yet)
-embedding_model = "bge-m3"
-min_score = 0.5                     # optional: the lowest similarity (-1 to 1) that still counts as a hit
-limit = 100                         # optional: the most Observations one search returns
-timeout = 300                       # optional: seconds to wait for one answer of the server
-command = ["~/.local/ollama/bin/ollama", "serve"]          # optional: how to start the server, see below
-env = { HSA_OVERRIDE_GFX_VERSION = "10.3.0" }               # optional: extra environment for `command`
-startup_timeout = 60                # optional: seconds a started server has to answer
+embedding_model = "bge-m3"          # a multilingual embedding model (German and English in one space)
+
+[ai.docker]
+image = "ollama/ollama:rocm"        # the ROCm image for an AMD GPU; "ollama/ollama" for NVIDIA or none
+gpu = "amd"                         # "amd", "nvidia" or "none" (the default)
+env = { HSA_OVERRIDE_GFX_VERSION = "10.3.0" }   # only for an AMD GPU ROCm does not officially support
 ```
 
-**Starting the server.** With `command`, the tool starts the server itself when nothing answers at `url`, waits
-until it does, and stops it again when the command is done; its output goes to `cache/ai/server.log` of the data
-directory (overwritten on every start). A server that was already running is used as it is and never stopped.
-Without `command`, the server has to be running already. The command must make the server listen at `url`: for
-Ollama on another port than 11434, also set `OLLAMA_HOST` in `env`.
+The table goes into `~/.config/faint-fuzzies/config.toml`; without `[ai]`, `--search` says so and everything else
+works as before. With `[ai.docker]`, a search:
+
+* creates the container (named by `container`, default `ollama`) from `image` when there is none, pulling the
+  image first. Its port is published on `127.0.0.1` only, at the port of `url` - never on the network - and the
+  models are kept in the volume named by `volume` (default `ollama`), never in the data directory. `gpu = "amd"`
+  passes `/dev/kfd` and `/dev/dri` in; `"nvidia"` asks for every GPU (it needs the NVIDIA container toolkit).
+* starts the container when it is not running, waits until its server answers, and stops it again afterwards.
+  A container that was already running is used as it is and left running, so `docker start ollama` keeps it
+  going between searches.
+* downloads `embedding_model` into the server when it does not have it yet - the only thing the tool does that is
+  specific to Ollama.
+
+A container is created once and then reused as it is: a changed `image`, `gpu` or `env` only takes effect after
+`docker rm ollama` (the models survive in their volume). An RX 6600 (gfx1032) is not officially supported by ROCm
+and needs the `HSA_OVERRIDE_GFX_VERSION` above; `docker exec ollama ollama ps` shows whether a loaded model runs
+on the GPU or the CPU, and `docker logs ollama` why not. `docker rm ollama && docker volume rm ollama` removes
+everything again.
+
+**Other servers.** Without `[ai.docker]`, the server can also be any other one with that API - Ollama installed
+by hand, llama.cpp's `llama-server` (one model per process), LM Studio - with `command` to have the tool start it
+the same way:
+
+```toml
+command = ["~/.local/ollama/bin/ollama", "serve"]   # how to start the server; a leading ~ is expanded
+env = { HSA_OVERRIDE_GFX_VERSION = "10.3.0" }       # extra environment for the command
+```
+
+The tool then starts the command when nothing answers at `url` and stops it again when it is done; its output goes
+to `cache/ai/server.log` of the data directory (overwritten on every start). The command must make the server
+listen at `url` (for Ollama on another port than 11434, set `OLLAMA_HOST` in `env`). Without `command` or
+`[ai.docker]`, the server has to be running already. `command` and `[ai.docker]` cannot both be given.
+
+The other entries of `[ai]` are optional:
+
+```toml
+min_score = 0.5          # the lowest similarity (-1 to 1) that still counts as a hit
+limit = 100              # the most Observations one search returns
+timeout = 300            # seconds to wait for one answer of the server
+startup_timeout = 60     # seconds a started server or container has to answer
+```
 
 **The result.** A Description search ranks and never gives a plain yes or no: an Observation is a *hit* when its
 best text scores at least `min_score`, the best `limit` hits over all matches are kept, and an Object is listed

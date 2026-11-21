@@ -24,6 +24,7 @@ upload = [
     "keyring>=25,<26",
 ]
 ai = [
+    "docker>=7.1,<8",
     "numpy>=2.0,<3",
 ]
 

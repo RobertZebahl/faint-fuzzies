@@ -29,7 +29,7 @@ def test_a_server_is_started_for_the_block_and_stopped_after_it(tmp_path):
     port = free_port()
     settings = config(port, http_server(port))
     started = []
-    with running_server(settings, tmp_path, started.append):
+    with running_server(settings, tmp_path, lambda step, _done: started.append(step)):
         assert AiClient(settings.url, 5).answers()
     assert not AiClient(settings.url, 5).answers()
     assert started and (tmp_path / LOG_NAME).is_file()
