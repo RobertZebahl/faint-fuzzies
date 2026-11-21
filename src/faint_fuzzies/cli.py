@@ -471,9 +471,12 @@ def _run_filter(args: argparse.Namespace) -> int:
                                double_star_findings, double_star_targets)
                 if spec.finding else None)
     matches = filter_objects(collection, spec, references, observers, findings)
-    scored: list[tuple[Match, SearchResult | None]] = (
-        [(match, None) for match in matches] if ai_config is None else
-        [(result.match, result) for result in _description_search(args, ai_config, collection, matches)])
+    rubric = None
+    if ai_config is None:
+        scored: list[tuple[Match, SearchResult | None]] = [(match, None) for match in matches]
+    else:
+        searched, rubric = _description_search(args, ai_config, collection, matches)
+        scored = [(result.match, result) for result in searched]
     objects = [match.object.label if args.names_only else _match_json(match, references, result)
                for match, result in scored]
     skipped = sum(c.skipped for c in collection.catalogues)
@@ -487,7 +490,7 @@ def _run_filter(args: argparse.Namespace) -> int:
         notices.append(f"{community.failed} community row(s) not attached")
     if notices:
         print(f"faint-fuzzies: {'; '.join(notices)}; run 'faint-fuzzies validate' for details", file=sys.stderr)
-    _emit({"count": len(objects), "objects": objects}, args.output)
+    _emit({"count": len(objects), **({"rubric": rubric} if rubric else {}), "objects": objects}, args.output)
     return EXIT_OK
 
 
@@ -586,7 +589,7 @@ def _run_eval_ai(args: argparse.Namespace) -> int:
 
 
 def _description_search(args: argparse.Namespace, ai_config: AiConfig, collection: Collection,
-                        matches: list[Match]) -> list[SearchResult]:
+                        matches: list[Match]) -> tuple[list[SearchResult], dict[str, str] | None]:
     """The matches ranked by --search, after bringing the description index up to date, and then reranked by
     the chat model unless --no-rerank is given (see faint_fuzzies.ai.rerank). Reranking judges every hit
     above its own lower pre-filter (rerank.MIN_SCORE) unless --min-score is given.
@@ -595,7 +598,7 @@ def _description_search(args: argparse.Namespace, ai_config: AiConfig, collectio
     :param ai_config: the AI settings
     :param collection: the loaded collection, all of whose Descriptions are indexed
     :param matches: the filter's matches
-    :returns: the matches with hits, best first
+    :returns: the matches with hits, best first, and the rubric they were judged by (None without reranking)
     """
     from faint_fuzzies.ai import rerank
     from faint_fuzzies.ai.client import AiClient
@@ -609,11 +612,12 @@ def _description_search(args: argparse.Namespace, ai_config: AiConfig, collectio
         index = update_index(args.data_dir, collection.objects, client, ai_config.embedding_model, report)
         query = query_vector(client, ai_config.embedding_model, args.search)
         if args.no_rerank:
-            return rank(matches, query, index, ai_config.min_score, ai_config.limit)
-        return rerank.rerank(client, ai_config, args.search,
-                             rank(matches, query, index,
-                                  rerank.MIN_SCORE if args.min_score is None else args.min_score, len(matches)),
-                             report)
+            return rank(matches, query, index, ai_config.min_score, ai_config.limit), None
+        reranked = rerank.rerank(client, ai_config, args.search,
+                                 rank(matches, query, index,
+                                      rerank.MIN_SCORE if args.min_score is None else args.min_score, len(matches)),
+                                 report)
+        return reranked.results, reranked.rubric
 
 
 def _reference_json(reference: Object) -> dict[str, Any]:

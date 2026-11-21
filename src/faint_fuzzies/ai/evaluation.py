@@ -15,7 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from faint_fuzzies.ai.client import AiClient
-from faint_fuzzies.ai.rerank import BATCH_SIZE, VERDICTS, judge_notes
+from faint_fuzzies.ai.rerank import BATCH_SIZE, VERDICTS, judge_notes, write_rubric
 from faint_fuzzies.domain.findings import CatalogueError
 from faint_fuzzies.storage import load_json_list
 
@@ -41,16 +41,17 @@ def read_cases(path: Path) -> list[dict[str, str]]:
 
 def evaluate(client: AiClient, model: str, cases: list[dict[str, str]],
              on_progress: Callable[[str, float], None] | None = None) -> dict[str, Any]:
-    """Judges every case with `model`, BATCH_SIZE notes of one search per request as reranking does, and
-    compares the verdicts with the expected ones.
+    """Judges every case with `model` as reranking does - a rubric written for each search, then BATCH_SIZE
+    notes of that search per request - and compares the verdicts with the expected ones.
 
     :returns: the report: the number of cases and of agreements, the share that agrees, the seconds the
-        judging took, the confusion counts (expected -> got -> number; a verdict the model left out is
-        "none"), and every case that disagrees
+        judging took (rubrics included), the rubric of each search, the confusion counts (expected -> got ->
+        number; a verdict the model left out is "none"), and every case that disagrees
     :raises AiError: when the server fails
     """
     started = time.monotonic()
-    got = _judged(client, model, cases, on_progress)
+    rubrics: dict[str, dict[str, str]] = {}
+    got = _judged(client, model, cases, rubrics, on_progress)
     confusion = {expected: {verdict: 0 for verdict in (*VERDICTS, "none")} for expected in VERDICTS}
     mismatches = []
     for case, verdict in zip(cases, got):
@@ -60,12 +61,14 @@ def evaluate(client: AiClient, model: str, cases: list[dict[str, str]],
     agree = len(cases) - len(mismatches)
     return {"model": model, "cases": len(cases), "agree": agree,
             "accuracy": round(agree / len(cases), 3) if cases else None,
-            "seconds": round(time.monotonic() - started, 1), "confusion": confusion, "mismatches": mismatches}
+            "seconds": round(time.monotonic() - started, 1), "rubrics": rubrics, "confusion": confusion,
+            "mismatches": mismatches}
 
 
-def _judged(client: AiClient, model: str, cases: list[dict[str, str]],
+def _judged(client: AiClient, model: str, cases: list[dict[str, str]], rubrics: dict[str, dict[str, str]],
             on_progress: Callable[[str, float], None] | None) -> list[str | None]:
-    """The model's verdict on each case, in the order of `cases`."""
+    """The model's verdict on each case, in the order of `cases`; the rubric of each search goes into
+    `rubrics`."""
     by_search: dict[str, list[int]] = {}
     for number, case in enumerate(cases):
         by_search.setdefault(case["search"], []).append(number)
@@ -75,6 +78,9 @@ def _judged(client: AiClient, model: str, cases: list[dict[str, str]],
     for done, (search, numbers) in enumerate(batches):
         if on_progress:
             on_progress(f"judging {len(cases)} test cases with {model}", done / len(batches))
-        for number, verdict in zip(numbers, judge_notes(client, model, search, [cases[n]["note"] for n in numbers])):
+        if search not in rubrics:
+            rubrics[search] = write_rubric(client, model, search)
+        notes = [cases[n]["note"] for n in numbers]
+        for number, verdict in zip(numbers, judge_notes(client, model, search, notes, rubrics[search])):
             got[number] = verdict
     return got

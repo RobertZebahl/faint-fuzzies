@@ -42,7 +42,7 @@ def test_names_only_lists_the_ranked_names(capsys, data_dir):
 def test_the_filter_narrows_the_search(capsys, data_dir):
     _code, result, _err = run(capsys, "--data-dir", str(data_dir), "--search", "Doppelstern",
                               "--filter", '{"name": "IC348"}')
-    assert result == {"count": 0, "objects": []}
+    assert (result["count"], result["objects"]) == (0, [])
 
 
 def test_the_limit_and_min_score_options_override_the_config(capsys, data_dir):
@@ -87,3 +87,10 @@ def test_no_rerank_ranks_by_the_embeddings_alone(capsys, data_dir):
     _code, result, _err = run(capsys, "--data-dir", str(data_dir), "--search", "Kugelhaufen", "--no-rerank")
     first = result["objects"][0]
     assert "verdict" not in first and all("verdict" not in o for o in first["observations"])
+
+
+def test_a_reranked_search_reports_its_rubric_and_one_without_reranking_none(capsys, data_dir):
+    _code, reranked, _err = run(capsys, "--data-dir", str(data_dir), "--search", "Kugelhaufen")
+    _code, plain, _err = run(capsys, "--data-dir", str(data_dir), "--search", "Kugelhaufen", "--no-rerank")
+    assert reranked["rubric"]["yes"] == "it was seen."
+    assert "rubric" not in plain

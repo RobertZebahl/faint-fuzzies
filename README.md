@@ -990,9 +990,12 @@ scores. Embeddings hardly notice a negation: "no structure visible" lands close 
 
 **Reranking.** Embeddings miss a negation ("no structure visible" lands close to "structure visible"), a word
 that only sounds alike ("well seen with averted vision" next to "structure visible"), and a search text that asks
-for two things at once. So, unless `--no-rerank` is given, the chat model then reads the 60 best hits by score
-(every hit from a score of 0.55 on is a candidate, or from `--min-score`) in batches of 10 and judges each: `yes`
-(clearly seen), `partly` (hinted at or uncertain) or `no`. Hits judged `no` are dropped, and so is an Object left
+for two things at once. So, unless `--no-rerank` is given, the chat model first writes a *rubric* for the search -
+one sentence each on what counts as `yes`, `partly` and `no` for exactly this search, following fixed guidance
+(what a Detail is, when colours count, that traces are `partly` and doubt is `no`) - since one set of rules
+cannot fit a search for structures and one for colours alike. It then reads the 60 best hits by score (every hit
+from a score of 0.55 on is a candidate, or from `--min-score`) in batches of 10 and judges each by that rubric:
+`yes` (seen), `partly` (only in traces, or only part of it) or `no`. The result carries the rubric as `rubric`. Hits judged `no` are dropped, and so is an Object left
 with none; the others are ranked by their best verdict (`yes` before `partly`), then by score, and the best
 `limit` Objects are kept. Every Object and every one of its hits then also carries its `verdict` (`null` for an
 observation that is not a hit). This takes some seconds per search, depending on the chat model and the GPU;
@@ -1000,8 +1003,8 @@ judgements are not cached, since they depend on the search text. `--no-rerank` r
 described above, which is quicker and shows what reranking changes.
 
 **Measuring the reranking.** `eval-ai --data-dir DIR` judges a test set of hand-judged notes with the chat model
-and reports how many verdicts agree, a confusion count (expected -> got), every case that disagrees, and the
-seconds it took - so a change of prompt or model shows in numbers. The test set is
+and reports how many verdicts agree, a confusion count (expected -> got), every case that disagrees, the rubric
+written for each search, and the seconds it took - so a change of prompt or model shows in numbers. The test set is
 `observations/owner/ai_eval/rerank.json` in the data directory, a JSON list of
 `{"search": "...", "note": "...", "expected": "yes" | "partly" | "no", "object": "..."}` (`object` is optional and
 only shown). It holds observation texts, so it belongs to the data directory, never to the repository. What counts
