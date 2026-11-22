@@ -24,3 +24,14 @@ def test_a_group_named_only_by_its_wds_id_is_not_renamed_after_its_pairs():
     WDS id must be shown instead."""
     unit = SimpleNamespace(is_group=True, record={ObjectAttribute.GROUP: "WDS01234+5678"})
     assert _names(SimpleNamespace(unit=unit), None) == ["WDS01234+5678"]
+
+
+def test_a_sketched_group_named_only_by_its_wds_id_keeps_that_name_in_the_gallery():
+    """The gallery used to drop a trailing WDS id even when it was the only name, leaving a card titled
+    "(**, Lyr)" for a sketch of a whole system such as STF2349's."""
+    from faint_fuzzies.domain.model import ObjectType as T
+    from faint_fuzzies.site.gallery import _title_and_link
+
+    unit = SimpleNamespace(record={ObjectAttribute.GROUP: "WDS18366+3328"}, names=["WDS18366+3328"],
+                           types=[T.DOUBLE_STAR], constellation="Lyr")
+    assert _title_and_link(unit, "en")["OBJECT_LINK_NAME"] == "WDS18366+3328 (**, Lyr)"

@@ -8,7 +8,7 @@ from faint_fuzzies.domain.lists import Entry
 from faint_fuzzies.domain.model import Object, ObjectAttribute
 from faint_fuzzies.domain.model import ObjectType as T
 from faint_fuzzies.site.listpages import GLOBAL_PAGES
-from faint_fuzzies.site.objects import SKETCHES_FOLDER, SiteData
+from faint_fuzzies.site.objects import SKETCHES_FOLDER, SiteData, get_display_names
 from faint_fuzzies.site.text import localized_names, quote_anchor
 
 # the Gallery groups in the order of the page; a group's own label is content, not structure - it comes
@@ -79,11 +79,10 @@ def _title_and_link(obj: Object, locale: str) -> dict[str, str]:
     :param locale: "en" or "de"
     :returns: OBJECT_LINK_NAME and OBJECT_LINK for the gallery card template
     """
-    names = localized_names(str(obj.record.get(ObjectAttribute.NAME) or ""), locale) or localized_names(
-        str(obj.record.get(ObjectAttribute.GROUP) or ""), locale)
-    first = names[0]
-    if names[-1].startswith("WDS"):
-        names = names[:-1]
+    first = (localized_names(str(obj.record.get(ObjectAttribute.NAME) or ""), locale) or localized_names(
+        str(obj.record.get(ObjectAttribute.GROUP) or ""), locale))[0]
+    names = get_display_names(obj.record.get(ObjectAttribute.NAME), locale) or get_display_names(
+        obj.record.get(ObjectAttribute.GROUP), locale)
     title = ", ".join(names)
     link = _link_page(obj)
     if "Moon" not in obj.names and "Sun" not in obj.names:
